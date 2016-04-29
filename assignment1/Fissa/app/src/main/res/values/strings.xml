@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Fissa</string>
+    <string name="btn_train">Training</string>
+    <string name="hint_trainfile">Filename</string>
+    <string name="btn_start_training_wifi">Start training wifi</string>
+    <string name="btn_start_training_walk">Start training walk</string>
+    <string name="btn_fissa">Fissa</string>
 </resources>
