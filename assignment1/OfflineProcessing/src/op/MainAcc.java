@@ -43,8 +43,8 @@ public class MainAcc {
 	
 	public void start() {
 		// Read acc data
-		List<AccData> accDataWalk = readAcc("testacc.dat");
-		List<AccData> accDataStill = readAcc("testacc.dat");
+		List<AccData> accDataWalk = readAcc("walk.dat");
+		List<AccData> accDataStill = readAcc("still.dat");
 
 		// Test multiple timewindows? (milliseconds)
 		long bestWindow = -1;
