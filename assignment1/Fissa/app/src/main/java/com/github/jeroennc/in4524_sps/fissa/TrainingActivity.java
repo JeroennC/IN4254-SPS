@@ -236,11 +236,12 @@ public class TrainingActivity extends AppCompatActivity implements SensorEventLi
         }
     }
 
-    /* Close file */
+    /* Close file on stop */
     protected void onStop() {
         super.onStop();
         if (trainingFileStream != null) {
             try {
+                trainingFileStream.flush();
                 trainingFileStream.close();
             } catch (IOException e) {
                 e.printStackTrace();

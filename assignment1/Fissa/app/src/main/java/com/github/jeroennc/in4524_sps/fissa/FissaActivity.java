@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.net.wifi.ScanResult;
@@ -25,29 +26,67 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class FissaActivity extends AppCompatActivity {
-    public final static int PERM_REQ_EXTWRITE = 1;
+public class FissaActivity extends AppCompatActivity implements SensorEventListener{
+    public final static int PERM_REQ_EXTREAD = 3;
     public final static int PERM_REQ_LOC = 2;
     private final static float ALPHA = 0.25f;
     private final AppCompatActivity act = this;
+    private final static int KVALUE = 7;
+
+    private class WifiCollection {
+        Map<String, Classifier> classifiers;
+        Map<String, List<Feature>> features;
+
+        WifiCollection() {
+            classifiers = new HashMap<>();
+            features = new HashMap<>();
+        }
+
+        Classifier getClassifier(String ap_mac) {
+            Classifier c = classifiers.get(ap_mac);
+            if (c == null) {
+                c = new Classifier(KVALUE);
+                List<Feature> featureList = features.get(ap_mac);
+                if (features != null)
+                    c.trainClassifier(featureList);
+                classifiers.put(ap_mac, c);
+            }
+            return c;
+        }
+
+        void addValue(String ap_mac, Feature feat) {
+            // Check if list is already present
+            List<Feature> ap_data = features.get(ap_mac);
+            if (ap_data == null) {
+                ap_data = new ArrayList<Feature>();
+                features.put(ap_mac, ap_data);
+            }
+            // Add value
+            ap_data.add(feat);
+        }
+    }
 
     /* Training var */
-    boolean trainWifi;
-    private boolean started = false;
     TextView textView;
-    int writes = 0;
 
-    /* File stuff */
-    File trainingFile;
-    FileOutputStream trainingFileStream;
+    /* Classifier stuff */
+    private Classifier accClassifier;
+    private boolean started = false;
+    private WifiCollection wifiClassifiers;
 
     /* Accelerator stuff */
     private SensorManager mSensorManager;
@@ -92,11 +131,22 @@ public class FissaActivity extends AppCompatActivity {
         textView.setTextSize(40);
         textView.setText("Testing..");
 
-        //Classifier classifier = new Classifier(7);
-        //classifier.trainsClassifier(features list van training set);
+        // Classifier start
+        accClassifier = new Classifier(KVALUE);
+        wifiClassifiers = new WifiCollection();
 
-        //same voor wifi
-
+        // File Permissions
+        int permissionCheck = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.READ_EXTERNAL_STORAGE
+                    }
+                    , PERM_REQ_EXTREAD);
+        } else {
+            readClassifierFiles();
+        }
 
         // If necessary, location permissions
         int permissionCheckWifi = ContextCompat.checkSelfPermission(this,
@@ -149,31 +199,66 @@ public class FissaActivity extends AppCompatActivity {
         attemptStart();
     }
 
-    /* Opens the file stream */
-    private void openFile() {
+    /* Reads the classifiers */
+    private void readClassifierFiles() {
+        // Read accelerator input
+        File accfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "accelerator.dat");
+
+        List<Feature> accFeatures = new ArrayList<>();
+        BufferedReader input;
         try {
-            trainingFileStream = new FileOutputStream(trainingFile, true);
-            Log.i("openFile", "Data Saved to " + trainingFile.getAbsolutePath());
+            input = new BufferedReader(new InputStreamReader(new FileInputStream(accfile)));
+
+            String line;
+            double val;
+            String[] inf;
+            while ((line = input.readLine()) != null) {
+                inf = line.split("\\|");
+                val = Double.parseDouble(inf[0]);
+                accFeatures.add(new Feature(val, inf[1]));
+            }
+            input.close();
         } catch (IOException e) {
-            Log.e("SAVE DATA", "Could not write file " + e.getMessage());
-            closeGracefully("Error opening file");
+            closeGracefully("Could not read accelerator.dat");
+            e.printStackTrace();
             return;
         }
 
-        // See if all can be started
+        accClassifier.trainClassifier(accFeatures);
+
+        // Read WiFi input
+        File wififile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "wifi.dat");
+
+        Map<String, List<Feature>> wifiData = new HashMap<>();
+        try {
+            input = new BufferedReader(new InputStreamReader(new FileInputStream(wififile)));
+
+            String line;
+            double val;
+            String[] inf;
+            while ((line = input.readLine()) != null) {
+                inf = line.split("\\|");
+                val = Double.parseDouble(inf[1]);
+                wifiClassifiers.addValue(inf[0], new Feature(val, inf[2]));
+            }
+            input.close();
+        } catch (IOException e) {
+            closeGracefully("Could not read wifi.dat");
+            e.printStackTrace();
+            return;
+        }
+
+        // Try to start now
         attemptStart();
     }
 
     /* Starts recording data if possible */
     private void attemptStart() {
-        if (started) {
-            return;
-        } else {
+        if (started) return;
+        if (mWifiManager != null && accelerator != null) {
             started = true;
             registerReceiver(mWifiScanReceiver, new IntentFilter(mWifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-            if (accelerator != null) {
-                mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_GAME);
-            }
+            mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_GAME);
         }
     }
 
@@ -196,18 +281,6 @@ public class FissaActivity extends AppCompatActivity {
         } else {
             unregisterReceiver(mWifiScanReceiver);
             mSensorManager.unregisterListener(this);
-        }
-    }
-
-    /* Close file */
-    protected void onStop() {
-        super.onStop();
-        if (trainingFileStream != null) {
-            try {
-                trainingFileStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -243,11 +316,11 @@ public class FissaActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
-            case PERM_REQ_EXTWRITE: {
+            case PERM_REQ_EXTREAD: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    openFile();
+                    readClassifierFiles();
                 } else {
                     // Well damnit :(
                     closeGracefully("No file writing permissions");
