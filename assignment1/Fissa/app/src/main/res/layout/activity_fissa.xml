@@ -9,15 +9,15 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.github.jeroennc.in4524_sps.fissa.FissaActivity">
 
-    <Button
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/btn_test"
-        android:id="@+id/btn_test"
-        android:layout_marginTop="0dp"
-        android:layout_alignParentTop="true"
-        android:layout_centerInParent="true"
-        android:onClick="startTrain"/>
+        android:id="@+id/wifitext"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/acctext"/>
 
 
 

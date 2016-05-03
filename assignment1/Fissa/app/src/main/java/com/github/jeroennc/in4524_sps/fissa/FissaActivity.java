@@ -82,7 +82,8 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
     }
 
     /* Training var */
-    TextView textView;
+    TextView wifitext;
+    TextView acctext;
 
     /* Classifier stuff */
     private Classifier accClassifier;
@@ -117,7 +118,6 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         }
     };
 
-
     // Dus de handleIds zijn de resultaten van de wifi meting? Ja
     // sorteer lijst op level -> pak eerste drie. ( per ap is training data een lijst met levels)
     // per AP -> kijk level, gebruik dit om te classifyen. -> print ook label
@@ -128,9 +128,13 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         setContentView(R.layout.activity_training);
 
         // Get textview
-        textView = (TextView) findViewById(R.id.testtext); // pas dit ID nog aan
-        textView.setTextSize(40);
-        textView.setText("Testing..");
+        acctext = (TextView) findViewById(R.id.acctext); // pas dit ID nog aan
+        acctext.setTextSize(40);
+        acctext.setText("Testing acc");
+
+        wifitext = (TextView) findViewById(R.id.wifitext); // pas dit ID nog aan
+        wifitext.setTextSize(40);
+        wifitext.setText("Testing wifi");
 
         // Classifier start
         accClassifier = new Classifier(KVALUE);
@@ -313,7 +317,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
             // Now find the label corresponding to the found minmax feature.
             String label = accClassifier.classify(max - min);
-            textView.setText(label);
+            acctext.setText(label);
 
             features.clear();
             endOfWindow = t + timeWindow;
