@@ -1,10 +1,10 @@
 package op;
 
-import com.sun.org.apache.xalan.internal.utils.FeatureManager;
-
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,15 +13,6 @@ import java.util.List;
  * Converts
  */
 public class MainAcc {
-	public class Feature {
-		double value;
-		String label;
-		
-		Feature(double value, String label) {
-			this.value = value;
-			this.label = label;
-		}
-	}
 	
 	private class AccData {
 		long timestamp;
@@ -40,8 +31,6 @@ public class MainAcc {
 
 
 	public MainAcc() {
-
-		start();
 
 	}
 
@@ -66,33 +55,16 @@ public class MainAcc {
 			// Get a training set and test set
 			List<Feature> training = new ArrayList<Feature>();
 			List<Feature> test = new ArrayList<Feature>();
-			splitFeatureSet(features, training, test, 0.1);
-			
-			System.out.printf("Training: %d\n", training.size());
-			for (Feature f : training) {
-				System.out.println(f.label + " - " + f.value);
-			}
+			Classifier.SplitFeatureSet(features, training, test, 0.1);
 
-			System.out.printf("\nTest: %d\n", test.size());
-			for (Feature f : test) {
-				System.out.println(f.label + " - " + f.value);
-			}
 			// Train classifier, using k = 7 for the kNN method
 			Classifier classifier = new Classifier(7);
 			classifier.trainClassifier(training);
 
-			// Test classifier using a value from the test features list
-			double testValue = test.get(0).value;
-			String testlabel = classifier.classify(testValue);
-
-			if (testlabel.equals(test.get(0).label)) {
-				System.out.println("Classification test geslaagd\n");
-			} else {
-				System.out.println("Classification test gefaald\n");
-			}
-
 			// Test classifier
-			double accuracy = 0;//classify..
+			double accuracy = classifier.testData(test);
+			
+			System.out.println("Classification accuracy: " + accuracy);
 			
 			if (accuracy > bestAccuracy) {
 				bestAccuracy = accuracy;
@@ -100,7 +72,28 @@ public class MainAcc {
 			}
 		}
 		
+		System.out.println("Accuracy: " + bestAccuracy);
 		System.out.println("Best window: " + bestWindow);
+		
+		// Output best window to file
+		bestWindow = 600;
+		List<Feature> featuresWalk = getAccFeatures(accDataWalk, bestWindow, "walk");
+		List<Feature> featuresStill = getAccFeatures(accDataStill, bestWindow, "still");
+		List<Feature> features = new ArrayList<Feature>(featuresWalk);
+		features.addAll(featuresStill);
+		
+		Path output = Paths.get("./data/accelerator.dat");
+		String line;
+		String content = "";
+		for (Feature f : features) {
+			line = f.value + "|" + f.label;
+			content += line + "\n";
+		}
+		try {
+			Files.write(output, content.getBytes(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private List<AccData> readAcc(String filename) {
@@ -163,21 +156,6 @@ public class MainAcc {
 		// Ignore the last time window? (Which is not used now)
 		
 		return result;		
-	}
-	
-	/**
-	 * Randomly splits feature set into a training set and a test set
-	 */
-	private void splitFeatureSet(List<Feature> features
-			, List<Feature> training, List<Feature> test
-			, double testFrac) {
-		for (Feature feat : features) {
-			if (Math.random() <= testFrac) {
-				test.add(feat);
-			} else {
-				training.add(feat);
-			}
-		}
 	}
 	
 	public static void main(String[] args) {
