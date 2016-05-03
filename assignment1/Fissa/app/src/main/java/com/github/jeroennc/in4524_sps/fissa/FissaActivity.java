@@ -344,9 +344,13 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
             mSensorManager.unregisterListener(this);
         }
     }
-    long timeWindow = 600; // Time window in msec
-    long endOfWindow = System.currentTimeMillis() + timeWindow; // Time of end of window
+    int subTimeWindow = 100;
+    int timeWindow = 700; // Time window in msec
+    long endOfWindow = System.currentTimeMillis() + subTimeWindow; // Time of end of window
     List<Feature> features = new ArrayList<Feature>();  // List of features to store within one window
+    String[] accLabels = new String[7];
+    int accIt = 0;
+    int accMaxIt = timeWindow / subTimeWindow;
     int counter = 0;
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -367,10 +371,23 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
             // Now find the label corresponding to the found minmax feature.
             String label = accClassifier.classify(max - min);
-            acctext.setText(label + " " + counter++);
+            accLabels[accIt++] = label;
 
             features.clear();
-            endOfWindow = t + timeWindow;
+            endOfWindow = t + subTimeWindow;
+        }
+
+        if (accIt >= accMaxIt) {
+            // Find most used label
+            int walkCount = 0, stillCount = 0;
+            for (String str : accLabels) {
+                if (str.equals("walk"))
+                    walkCount++;
+                else
+                    stillCount++;
+            }
+            String label = walkCount > stillCount ? "walk" : "still";
+            acctext.setText(label + " " + counter++);
         }
 
         // store and extract features
@@ -379,7 +396,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         double yValue = accelVals[1];
         double zValue = accelVals[2];
 
-        Feature f = new Feature(Math.abs(xValue) + Math.abs(yValue) + Math.abs(zValue),
+        Feature f = new Feature(Math.sqrt(Math.pow(xValue,2) + Math.pow(yValue,2) + Math.pow(zValue,2)),
                                 "undefined");
         features.add(f);
     }
