@@ -78,7 +78,7 @@ public class MainAcc {
 		System.out.println("Best window: " + bestWindow);
 		
 		// Output best window to file
-		bestWindow = 600;
+		bestWindow = 100;
 		List<Feature> featuresWalk = getAccFeatures(accDataWalk, bestWindow, "walk");
 		List<Feature> featuresStill = getAccFeatures(accDataStill, bestWindow, "still");
 		List<Feature> features = new ArrayList<Feature>(featuresWalk);

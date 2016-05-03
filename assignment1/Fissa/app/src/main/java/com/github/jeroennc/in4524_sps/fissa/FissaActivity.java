@@ -65,7 +65,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
                 List<Feature> featureList = features.get(ap_mac);
                 if (featureList == null)
                     return null;
-                c = new Classifier(KVALUE);
+                c = new Classifier(KVALUE, "roomA", "roomB");
                 c.trainClassifier(featureList);
                 classifiers.put(ap_mac, c);
             }
@@ -100,6 +100,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
     /* Wifi */
     private WifiManager mWifiManager;
+    private int wcounter = 0;
 
     private static Comparator<WifiData> WifiComparator = new Comparator<WifiData>() {
         @Override
@@ -141,10 +142,11 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
                 // Sort by level (asc, 0 is best, -100 is worst)
                 Collections.sort(accessPoints, WifiComparator);
                 // For the top (up to 3) strongest access points, perform kNN
+                int maxAPs = 3;
                 int handledPoints = 0;
                 int it = 0;
                 int roomB = 0;
-                while (handledPoints < 3 && handledPoints < accessPoints.size()) {
+                while (handledPoints < maxAPs && handledPoints < accessPoints.size() && it < accessPoints.size()) {
                     WifiData currentAP = accessPoints.get(it);
                     Classifier cl = wifiClassifiers.getClassifier(currentAP.BSSID);
 
@@ -160,10 +162,10 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
                 // Decide which room you are in
                 if (roomB <= handledPoints / 2.0) {
                     // Room A
-                    wifitext.setText("Room A");
+                    wifitext.setText("Room A - " + wcounter++);
                 } else {
                     // Room B
-                    wifitext.setText("Room B");
+                    wifitext.setText("Room B - " + wcounter++);
                 }
             }
         }
@@ -188,7 +190,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         wifitext.setText("Testing wifi");
 
         // Classifier start
-        accClassifier = new Classifier(KVALUE);
+        accClassifier = new Classifier(KVALUE, "walk", "still");
         wifiClassifiers = new WifiCollection();
 
         // File Permissions
@@ -281,12 +283,12 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         }
 
         accClassifier.trainClassifier(accFeatures);
-
-        // TEMP
+/*
+        // TEMP turn off WiFi classifying
         attemptStart();
         if (true) return;
         // END TEMP
-
+*/
         // Read WiFi input
         File wififile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "wifi.dat");
 
@@ -388,6 +390,8 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
             }
             String label = walkCount > stillCount ? "walk" : "still";
             acctext.setText(label + " " + counter++);
+
+            accIt = 0;
         }
 
         // store and extract features

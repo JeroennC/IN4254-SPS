@@ -9,8 +9,9 @@ import java.util.List;
 public class Classifier {
     int k; 						// Nr of neighbours used for kNN algorithm
     List<Feature> training;		// Training set to find kNN
+    String label1, label2;      // Labels present in data
 
-    public Classifier (int k) {
+    public Classifier (int k, String label1, String label2) {
         // Check if value of k is valid (=uneven)
         if (k%2 == 0) {
             // TODO raise an error that an invalid k has been provided
@@ -19,6 +20,8 @@ public class Classifier {
         // Set class attributes
         this.k = k;
         this.training = new ArrayList<Feature>();
+        this.label1 = label1;
+        this.label2 = label2;
     }
 
     /* Set value of k */
@@ -75,13 +78,13 @@ public class Classifier {
         }
 
         // Classify value by checking classification of the k nearest neighbours
-        int walkcount = 0, stillcount = 0;
+        int l1count = 0, l2count = 0;
 
         for (i = 0; i < k-1; i++) {
-            if (labels[i].equals("walk")) {
-                walkcount++;
-            } else if (labels[i].equals("still")) {
-                stillcount++;
+            if (labels[i].equals(label1)) {
+                l1count++;
+            } else if (labels[i].equals(label2)) {
+                l2count++;
             } else {
                 // TODO error meegeven dat er niet genoeg neighbours gevonden zijn?
             }
@@ -89,10 +92,10 @@ public class Classifier {
 
         // Give the label corresponding to the k nearest neighbours
         String label;
-        if (walkcount > stillcount) {
-            label = "walk";
+        if (l1count > l2count) {
+            label = label1;
         } else {
-            label = "still";
+            label = label2;
         }
 
         // TODO datapunt meteen toevoegen aan de training set?

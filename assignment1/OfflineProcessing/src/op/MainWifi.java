@@ -78,11 +78,11 @@ public class MainWifi {
 
 	public void start() {
 		// Read data
-		WifiCollection dataRoom1 = readWifi("room1.dat");
-		WifiCollection dataRoom2 = readWifi("room2.dat");
+		WifiCollection dataRoomA = readWifi("roomA.dat");
+		WifiCollection dataRoomB = readWifi("roomB.dat");
 		WifiFeatures features = new WifiFeatures();
-		dataRoom1.getFeatures(features, "room1");
-		dataRoom2.getFeatures(features, "room2");
+		dataRoomA.getFeatures(features, "roomA");
+		dataRoomB.getFeatures(features, "roomB");
 		
 		// Output features
 		Path output = Paths.get("./data/wifi.dat");
