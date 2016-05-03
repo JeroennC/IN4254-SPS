@@ -1,5 +1,7 @@
 package op;
 
+import com.sun.org.apache.xalan.internal.utils.FeatureManager;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,16 +33,19 @@ public class MainAcc {
 			this.x = x;
 			this.y = y;
 			this.z = z;
-			tot = x + y + z;
+			tot = Math.abs(x) + Math.abs(y) + Math.abs(z);
 		}
 	}
-	
-	//Classifier classifier;
-	
+
+
+
 	public MainAcc() {
-		//classifier = new Classifier();
+
+		start();
+
 	}
-	
+
+
 	public void start() {
 		// Read acc data
 		List<AccData> accDataWalk = readAcc("walk.dat");
@@ -72,12 +77,22 @@ public class MainAcc {
 			for (Feature f : test) {
 				System.out.println(f.label + " - " + f.value);
 			}
-			// Train classifier
-			//classifier..
-			
+			// Train classifier, using k = 7 for the kNN method
+			Classifier classifier = new Classifier(7);
+			classifier.trainClassifier(training);
+
+			// Test classifier using a value from the test features list
+			double testValue = test.get(0).value;
+			String testlabel = classifier.classify(testValue);
+
+			if (testlabel.equals(test.get(0).label)) {
+				System.out.println("Classification test geslaagd\n");
+			} else {
+				System.out.println("Classification test gefaald\n");
+			}
+
 			// Test classifier
 			double accuracy = 0;//classify..
-			
 			
 			if (accuracy > bestAccuracy) {
 				bestAccuracy = accuracy;
@@ -92,6 +107,7 @@ public class MainAcc {
 		List<String> lines;
 		try {
 			Path filePath = Paths.get("./data/" + filename);
+			//Path filePath = Paths.get(filename);
 			lines = Files.readAllLines(filePath);
 		} catch (Exception e) {
 			e.printStackTrace();
