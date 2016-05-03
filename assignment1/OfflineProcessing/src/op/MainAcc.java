@@ -1,7 +1,5 @@
 package op;
 
-import com.sun.org.apache.xalan.internal.utils.FeatureManager;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -106,7 +104,7 @@ public class MainAcc {
 	private List<AccData> readAcc(String filename) {
 		List<String> lines;
 		try {
-			Path filePath = Paths.get("./data/" + filename);
+			Path filePath = Paths.get("/home/danielle/AndroidStudioProjects/IN4254-SPS/assignment1/OfflineProcessing/data/" + filename);
 			//Path filePath = Paths.get(filename);
 			lines = Files.readAllLines(filePath);
 		} catch (Exception e) {
