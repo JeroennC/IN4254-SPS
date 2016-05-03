@@ -227,6 +227,12 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
         accClassifier.trainClassifier(accFeatures);
 
+        /*
+        // TEMP
+        attemptStart();
+        if (true) return;
+        // END TEMP
+        */
         // Read WiFi input
         File wififile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "wifi.dat");
 
@@ -293,20 +299,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
         long t = System.currentTimeMillis();               // current time
 
-        if (t < endOfWindow) {
-            // TimeWindow has not yet elapsed
-
-            // store and extract features
-            accelVals = lowPass(event.values.clone(), accelVals);
-            double xValue = accelVals[0];
-            double yValue = accelVals[1];
-            double zValue = accelVals[2];
-
-            Feature f = new Feature(Math.abs(xValue) + Math.abs(yValue) + Math.abs(zValue),
-                                    "undefined");
-            features.add(f);
-
-        } else {
+        if (t > endOfWindow){
             // TimeWindow has elapsed, find min-max feature and start new window
 
             double min = Double.MAX_VALUE;
@@ -322,9 +315,19 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
             String label = accClassifier.classify(max - min);
             textView.setText(label);
 
-            features = new ArrayList<Feature>();
-            endOfWindow = System.currentTimeMillis() + timeWindow;
+            features.clear();
+            endOfWindow = t + timeWindow;
         }
+
+        // store and extract features
+        accelVals = lowPass(event.values.clone(), accelVals);
+        double xValue = accelVals[0];
+        double yValue = accelVals[1];
+        double zValue = accelVals[2];
+
+        Feature f = new Feature(Math.abs(xValue) + Math.abs(yValue) + Math.abs(zValue),
+                                "undefined");
+        features.add(f);
     }
 
     /* Use a low-pass filter to avoid random high values casued by noise. Taken from https://www.built.io/blog/2013/05/applying-low-pass-filter-to-android-sensors-readings/ */
