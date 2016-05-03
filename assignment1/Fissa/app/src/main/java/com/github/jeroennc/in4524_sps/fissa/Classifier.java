@@ -1,14 +1,10 @@
-package op;
+package com.github.jeroennc.in4524_sps.fissa;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by danielle on 3-5-16.
- */
 // TODO Momenteel wordt alleen accdata geclassified, breidt dit uit naar ook de wifipunten
 public class Classifier {
-
     int k; 						// Nr of neighbours used for kNN algorithm
     List<Feature> training;		// Training set to find kNN
 
@@ -100,32 +96,31 @@ public class Classifier {
         // TODO datapunt meteen toevoegen aan de training set?
         return label;
     }
-    
-    double testData (List<Feature> test) {
-    	int correct = 0;
-    	String res;
-    	for (Feature f : test) {
-    		res = this.classify(f.value);
-    		if (res.equals(f.label)) {
-    			correct++;
-    		}
-    	}
-    	return correct * 1.0 / test.size();
-    }
-	
-	/**
-	 * Randomly splits feature set into a training set and a test set
-	 */
-	static public void SplitFeatureSet(List<Feature> features
-			, List<Feature> training, List<Feature> test
-			, double testFrac) {
-		for (Feature feat : features) {
-			if (Math.random() <= testFrac) {
-				test.add(feat);
-			} else {
-				training.add(feat);
-			}
-		}
-	}
-}
 
+    double testData (List<Feature> test) {
+        int correct = 0;
+        String res;
+        for (Feature f : test) {
+            res = this.classify(f.value);
+            if (res.equals(f.label)) {
+                correct++;
+            }
+        }
+        return correct * 1.0 / test.size();
+    }
+
+    /**
+     * Randomly splits feature set into a training set and a test set
+     */
+    static public void SplitFeatureSet(List<Feature> features
+            , List<Feature> training, List<Feature> test
+            , double testFrac) {
+        for (Feature feat : features) {
+            if (Math.random() <= testFrac) {
+                test.add(feat);
+            } else {
+                training.add(feat);
+            }
+        }
+    }
+}
