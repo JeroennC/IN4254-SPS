@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -211,18 +212,85 @@ public class FissaActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Get min-max feature for every time window
+     */
+    private List<Feature> getAccFeatures(List<AccData> data, long timeWindow, String label) {
+        List<Feature> result = new ArrayList<Feature>();
+        if (data.isEmpty()) return result;
+
+        AccData ad = data.get(0);
+        long nextTimestamp = ad.timestamp + timeWindow;
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+
+        // Extract min-max feature from data
+        for (int i = 0; i < data.size(); i++) {
+            ad = data.get(i);
+
+            while (ad.timestamp > nextTimestamp) {
+                nextTimestamp += timeWindow;
+                if (min == Double.MAX_VALUE)
+                    continue;
+                // reset
+                result.add(new Feature(max - min, label));
+                min = Double.MAX_VALUE;
+                max = Double.MIN_VALUE;
+            }
+
+            if (ad.tot < min) min = ad.tot;
+            if (ad.tot > max) max = ad.tot;
+        }
+        // Ignore the last time window? (Which is not used now)
+
+        return result;
+    }
+
+
+
+
+
+    long timeWindow = 600; // Time window in msec
+    long endOfWindow = System.currentTimeMillis() + timeWindow; // Time of end of window
+    List<Feature> features = new ArrayList<Feature>();  // List of features to store within one window
+
     @Override
     public void onSensorChanged(SensorEvent event) {
-        accelVals = lowPass(event.values.clone(), accelVals);
-        String xValue = String.format("%.2f", accelVals[0]);
-        String yValue = String.format("%.2f", accelVals[1]);
-        String zValue = String.format("%.2f", accelVals[2]);
-        long ts = System.currentTimeMillis();
 
-        //voor 1 time windows (600 ms) sla min max features op -> gebruik classifier
-        //        label printen op scherm
+        long t = System.currentTimeMillis();               // current time
 
+        if (t < endOfWindow) {
+            // TimeWindow has not yet elapsed
 
+            // store and extract features
+            accelVals = lowPass(event.values.clone(), accelVals);
+            String xValue = String.format("%.2f", accelVals[0]);
+            String yValue = String.format("%.2f", accelVals[1]);
+            String zValue = String.format("%.2f", accelVals[2]);
+
+            Feature f = new Feature(Math.abs(xValue) + Math.abs(yValue) + Math.abs(zValue),
+                                    "undefined");
+            features.add(f);
+
+        } else {
+            // TimeWindow has elapsed, find min-max feature and start new window
+
+            double min = Double.MAX_VALUE;
+            double max = Double.MIN_VALUE;
+
+            // Extract min-max feature from data
+            for (Feature f: features) {
+                if (f.value > max) max = f.value;
+                if (f.value < min) min = f.value;
+            }
+
+            // Now find the label corresponding to the found minmax feature.
+            String label = accClassifier.classify(max - min);
+            textView.setText(label);
+
+            features = new ArrayList<Feature>();
+            endOfWindow = System.currentTimeMillis() + timeWindow;
+        }
     }
 
     /* Use a low-pass filter to avoid random high values casued by noise. Taken from https://www.built.io/blog/2013/05/applying-low-pass-filter-to-android-sensors-readings/ */
