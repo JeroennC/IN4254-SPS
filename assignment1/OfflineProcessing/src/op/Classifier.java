@@ -80,9 +80,9 @@ public class Classifier {
         int walkcount = 0, stillcount = 0;
 
         for (i = 0; i < k-1; i++) {
-            if (labels[i] == "walk") {
+            if (labels[i].equals("walk")) {
                 walkcount++;
-            } else if (labels[i] == "still") {
+            } else if (labels[i].equals("still")) {
                 stillcount++;
             } else {
                 // TODO error meegeven dat er niet genoeg neighbours gevonden zijn?

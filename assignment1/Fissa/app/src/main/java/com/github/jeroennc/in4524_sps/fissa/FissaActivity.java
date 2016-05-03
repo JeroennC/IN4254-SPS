@@ -35,6 +35,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +62,11 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
         Classifier getClassifier(String ap_mac) {
             Classifier c = classifiers.get(ap_mac);
             if (c == null) {
-                c = new Classifier(KVALUE);
                 List<Feature> featureList = features.get(ap_mac);
-                if (features != null)
-                    c.trainClassifier(featureList);
+                if (featureList == null)
+                    return null;
+                c = new Classifier(KVALUE);
+                c.trainClassifier(featureList);
                 classifiers.put(ap_mac, c);
             }
             return c;
@@ -98,21 +101,69 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
     /* Wifi */
     private WifiManager mWifiManager;
 
+    private static Comparator<WifiData> WifiComparator = new Comparator<WifiData>() {
+        @Override
+        public int compare(WifiData w1, WifiData w2) {
+            return w2.level - w1.level;
+        }
+    };
+
+    private class WifiData {
+        String BSSID;
+        int level;
+
+        WifiData(String BSSID, int level) {
+            this.BSSID = BSSID;
+            this.level = level;
+        }
+
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (!(obj instanceof WifiData)) return false;
+            if (((WifiData) obj).BSSID.equals(this.BSSID)) return true;
+            return false;
+        }
+    }
+
     private final BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent intent) {
             if (intent.getAction().equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) {
                 if (!started) return;
                 List<ScanResult> mScanResults = mWifiManager.getScanResults();
-                List<String> handledIds = new ArrayList<>();
-                String data = "";
+                List<WifiData> accessPoints = new ArrayList<>();
                 for (ScanResult sr : mScanResults) {
                     // Don't add duplicate MAC addresses
-                    if (handledIds.contains(sr.BSSID)) continue;
+                    if (accessPoints.contains(sr.BSSID)) continue;
 
-                    data += sr.timestamp + "|" + sr.BSSID + "|" + sr.level + "\n";
-                    handledIds.add(sr.BSSID);
-                    // sla ook levels op
+                    accessPoints.add(new WifiData(sr.BSSID, sr.level));
+                }
+                // Sort by level (asc, 0 is best, -100 is worst)
+                Collections.sort(accessPoints, WifiComparator);
+                // For the top (up to 3) strongest access points, perform kNN
+                int handledPoints = 0;
+                int it = 0;
+                int roomB = 0;
+                while (handledPoints < 3 && handledPoints < accessPoints.size()) {
+                    WifiData currentAP = accessPoints.get(it);
+                    Classifier cl = wifiClassifiers.getClassifier(currentAP.BSSID);
+
+                    if (cl != null) {
+                        String label = cl.classify(currentAP.level);
+                        if (label.equals("roomB"))
+                            roomB++;
+                        handledPoints++;
+                    }
+
+                    it++;
+                }
+                // Decide which room you are in
+                if (roomB <= handledPoints / 2.0) {
+                    // Room A
+                    wifitext.setText("Room A");
+                } else {
+                    // Room B
+                    wifitext.setText("Room B");
                 }
             }
         }
@@ -125,7 +176,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_training);
+        setContentView(R.layout.activity_fissa);
 
         // Get textview
         acctext = (TextView) findViewById(R.id.acctext); // pas dit ID nog aan
@@ -231,12 +282,11 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
         accClassifier.trainClassifier(accFeatures);
 
-        /*
         // TEMP
         attemptStart();
         if (true) return;
         // END TEMP
-        */
+
         // Read WiFi input
         File wififile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "wifi.dat");
 
@@ -297,7 +347,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
     long timeWindow = 600; // Time window in msec
     long endOfWindow = System.currentTimeMillis() + timeWindow; // Time of end of window
     List<Feature> features = new ArrayList<Feature>();  // List of features to store within one window
-
+    int counter = 0;
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -317,7 +367,7 @@ public class FissaActivity extends AppCompatActivity implements SensorEventListe
 
             // Now find the label corresponding to the found minmax feature.
             String label = accClassifier.classify(max - min);
-            acctext.setText(label);
+            acctext.setText(label + " " + counter++);
 
             features.clear();
             endOfWindow = t + timeWindow;

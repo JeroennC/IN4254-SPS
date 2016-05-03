@@ -1,5 +1,7 @@
 package com.github.jeroennc.in4524_sps.fissa;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,9 +78,9 @@ public class Classifier {
         int walkcount = 0, stillcount = 0;
 
         for (i = 0; i < k-1; i++) {
-            if (labels[i] == "walk") {
+            if (labels[i].equals("walk")) {
                 walkcount++;
-            } else if (labels[i] == "still") {
+            } else if (labels[i].equals("still")) {
                 stillcount++;
             } else {
                 // TODO error meegeven dat er niet genoeg neighbours gevonden zijn?
