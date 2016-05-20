@@ -18,6 +18,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".MagneticMeasurerActivity"></activity>
+        <activity android:name=".DistanceActivity"></activity>
     </application>
 
 </manifest>
