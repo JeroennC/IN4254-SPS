@@ -85,7 +85,7 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
             mAccel = event.values;
         if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
             mMagn = event.values;
-        if (mAccel == null || mMagn != null)
+        if (mAccel == null || mMagn == null)
             return;
 
         float R[] = new float[9];

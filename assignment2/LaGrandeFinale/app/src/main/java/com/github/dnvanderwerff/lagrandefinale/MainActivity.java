@@ -31,10 +31,10 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    /*public void startMagnet(View view) {
-        Intent intent = new Intent(this, );
+    public void startMagneto(View view) {
+        Intent intent = new Intent(this, MagneticMeasurerActivity.class);
         startActivity(intent);
-    }*/
+    }
 
 
 }

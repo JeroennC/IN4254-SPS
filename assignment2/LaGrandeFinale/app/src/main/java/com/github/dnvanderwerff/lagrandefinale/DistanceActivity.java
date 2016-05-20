@@ -66,7 +66,7 @@ public class DistanceActivity extends AppCompatActivity {
         }
     }
 
-    List<double> accMagnitude = 
+    //List<double> accMagnitude =
     long endOfWindow = System.currentTimeMillis(); // set current endOfWindow
     double accMagnitude = 0;
     public void onSensorChanged(SensorEvent event) {
