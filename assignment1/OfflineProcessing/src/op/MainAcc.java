@@ -26,7 +26,7 @@ public class MainAcc {
 			this.x = x;
 			this.y = y;
 			this.z = z;
-			tot = Math.abs(x) + Math.abs(y) + Math.abs(z);
+			tot = Math.sqrt(Math.abs(x) + Math.abs(y) + Math.abs(z));
 		}
 	}
 
