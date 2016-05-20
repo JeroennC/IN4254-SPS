@@ -12,13 +12,16 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:id="@+id/currentDegrees"/>
+        android:layout_centerHorizontal="true"
+        android:text="hi"
+        android:id="@+id/currentDegrees"
+        android:layout_marginTop="50pt" />
 
     <EditText
         android:layout_width="wrap_content"
         android:minWidth="30pt"
         android:layout_height="wrap_content"
+        android:layout_below="@id/currentDegrees"
         android:layout_centerInParent="true"
         android:text=""
         android:id="@+id/cell" />
@@ -39,7 +42,8 @@
         android:text="Store"
         android:layout_centerInParent="true"
         android:layout_below="@id/cell"
-        android:id="@+id/storeButton"/>
+        android:id="@+id/storeButton"
+        android:onClick="StoreDegree"/>
 
 
 

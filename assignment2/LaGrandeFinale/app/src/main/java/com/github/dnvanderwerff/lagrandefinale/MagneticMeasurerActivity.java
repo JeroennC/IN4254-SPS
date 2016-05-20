@@ -15,6 +15,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -31,7 +32,6 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
     /* GUI vars */
     private TextView degreesView;
     private EditText cellEdit;
-    private Button storeButton;
 
     /* File stuff */
     private File magnFile;
@@ -39,11 +39,8 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
 
     /* Sensor stuff */
     private SensorManager mSensorManager;
-    private Sensor magnetometer;
-    private Sensor accelerometer;
-    private float[] mAccel;
-    private float[] mMagn;
-    private float azimuth;
+    private Sensor orientation;
+    private float currentDegree;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,12 +50,10 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
         // Set GUI refs
         degreesView = (TextView) findViewById(R.id.currentDegrees);
         cellEdit = (EditText) findViewById(R.id.cell);
-        storeButton = (Button) findViewById(R.id.storeButton);
 
         // Get magnetometer
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        orientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 
         // Get file location
         File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -77,26 +72,25 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
         }
     }
 
+    /* Store the current degree with cell in file */
+    public void StoreDegree(View view) {
+        String cell = cellEdit.getText().toString();
+        String input = cell + "\t" + String.format("%.1f", currentDegree) + "\n";
+        try {
+            magnFileStream.write(input.getBytes());
+            magnFileStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     // Sensor listener (http://www.codingforandroid.com/2011/01/using-orientation-sensors-simple.html)
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // event.values = [x, y, z]
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
-            mAccel = event.values;
-        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
-            mMagn = event.values;
-        if (mAccel == null || mMagn == null)
-            return;
+        float degree = Math.round(event.values[0]);
 
-        float R[] = new float[9];
-        float I[] = new float[9];
-        // If succesful
-        if(SensorManager.getRotationMatrix(R, I, mAccel, mMagn)) {
-            float orientation[] = new float[3];
-            SensorManager.getOrientation(R, orientation);
-            azimuth = orientation[0];
-            degreesView.setText(String.format(".2f", azimuth));
-        }
+        degreesView.setText(Float.toString(degree) + " degrees");
+        currentDegree = degree;
     }
 
     @Override
@@ -107,8 +101,7 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
     /* Register listeners */
     protected void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this, orientation, SensorManager.SENSOR_DELAY_GAME);
     }
 
     /* Unregister listeners */
