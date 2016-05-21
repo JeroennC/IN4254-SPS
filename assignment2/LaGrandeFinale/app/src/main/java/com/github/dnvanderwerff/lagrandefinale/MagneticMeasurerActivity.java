@@ -5,33 +5,40 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import com.github.dnvanderwerff.lagrandefinale.util.DirectionExtractor;
+import com.github.dnvanderwerff.lagrandefinale.view.CompassView;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
-public class MagneticMeasurerActivity extends AppCompatActivity implements SensorEventListener {
+public class MagneticMeasurerActivity extends AppCompatActivity {
     public final static int PERM_REQ_EXTWRITE = 1;
     private final AppCompatActivity act = this;
+    private final static float ALPHA = 0.8f;
     private boolean canWrite = false;
+
+    private Timer timer = new Timer();
 
     /* GUI vars */
     private TextView degreesView;
     private EditText cellEdit;
+    private CompassView compass;
 
     /* File stuff */
     private File magnFile;
@@ -39,8 +46,11 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
 
     /* Sensor stuff */
     private SensorManager mSensorManager;
-    private Sensor orientation;
-    private float currentDegree;
+    private DirectionExtractor directionExtractor;
+
+    /* */
+    private int degreeNorth, degreeMe;
+    private float radianNorth, radianMe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,10 +60,11 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
         // Set GUI refs
         degreesView = (TextView) findViewById(R.id.currentDegrees);
         cellEdit = (EditText) findViewById(R.id.cell);
+        compass = (CompassView) findViewById(R.id.compass);
 
-        // Get magnetometer
+        // Get sensors
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        orientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        directionExtractor = new DirectionExtractor(mSensorManager);
 
         // Get file location
         File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -70,12 +81,17 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
         } else {
             openFile();
         }
+
+        /* Timer */
+        timer.scheduleAtFixedRate(new updateCompassTask(),1000, 30);
     }
 
     /* Store the current degree with cell in file */
     public void StoreDegree(View view) {
+        if (!canWrite) return;
+
         String cell = cellEdit.getText().toString();
-        String input = cell + "\t" + String.format("%.1f", currentDegree) + "\n";
+        String input = cell + "\t" + String.format("%.1f", degreeNorth) + "\n";
         try {
             magnFileStream.write(input.getBytes());
             magnFileStream.flush();
@@ -84,30 +100,38 @@ public class MagneticMeasurerActivity extends AppCompatActivity implements Senso
         }
     }
 
-    // Sensor listener (http://www.codingforandroid.com/2011/01/using-orientation-sensors-simple.html)
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        float degree = Math.round(event.values[0]);
+    /* Class updating compass */
+    class updateCompassTask extends TimerTask {
+        @Override
+        public void run() {
+            degreeNorth = directionExtractor.getDegreeNorth();
+            radianNorth = directionExtractor.getRadianNorth();
+            degreeMe = directionExtractor.getDegreeMe();
+            radianMe = directionExtractor.getRadianMe();
 
-        degreesView.setText(Float.toString(degree) + " degrees");
-        currentDegree = degree;
+            mHandler.obtainMessage(1).sendToTarget();
+        }
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-    }
+    /* Handler to update UI */
+    public Handler mHandler = new Handler() {
+        public void handleMessage(Message msg) {
+            degreesView.setText("Degrees North: " + degreeNorth + "\n"
+                + "Degrees me: " + degreeMe);
+            compass.update(radianNorth, radianMe);
+        }
+    };
 
     /* Register listeners */
     protected void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, orientation, SensorManager.SENSOR_DELAY_GAME);
+        directionExtractor.registerListeners(mSensorManager);
     }
 
     /* Unregister listeners */
     protected void onPause() {
         super.onPause();
-        mSensorManager.unregisterListener(this);
+        mSensorManager.unregisterListener(directionExtractor);
     }
 
     // Opens file to write to

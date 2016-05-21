@@ -9,13 +9,20 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.github.dnvanderwerff.lagrandefinale.MagneticMeasurerActivity">
 
+    <com.github.dnvanderwerff.lagrandefinale.view.CompassView
+        android:layout_height="30pt"
+        android:layout_width="30pt"
+
+        android:id="@+id/compass"
+        android:layout_alignParentEnd="true" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:text="hi"
         android:id="@+id/currentDegrees"
-        android:layout_marginTop="50pt" />
+        android:layout_marginTop="50pt"/>
 
     <EditText
         android:layout_width="wrap_content"
