@@ -7,6 +7,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:gravity="center_horizontal"
     tools:context="com.github.dnvanderwerff.lagrandefinale.MainActivity">
 
     <Button
@@ -14,7 +15,7 @@
         android:layout_height="wrap_content"
         android:text="Stdev"
         android:id="@+id/stdev"
-        android:onClick="startDistance" />
+        android:onClick="startDistance"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -22,5 +23,14 @@
         android:text="Magnetodev"
         android:id="@+id/magnetdev"
         android:layout_below="@+id/stdev"
-        android:onClick="startMagnet"/>
+        android:onClick="startMagneto"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ParticleMapdev"
+        android:id="@+id/particlemapdev"
+        android:onClick="startParticleMap"
+        android:layout_below="@id/magnetdev"/>
+
 </RelativeLayout>

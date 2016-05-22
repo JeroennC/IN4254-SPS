@@ -16,7 +16,6 @@ import java.util.List;
 import com.jjoe64.graphview.*;
 import com.jjoe64.graphview.series.*;
 
-
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
     /* Accelerator stuff */
@@ -89,7 +88,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         standing = false;
     }
 
-    // Make histogram from 0 to 3 (I chose these values by looking at paper)
+    // Values can be adapted
     int nrBins = 15; // nr of bins
     double binSize = 0.1;
 
