@@ -42,7 +42,7 @@ public class MapActivity extends AppCompatActivity {
 
         collisionMap = new CollisionMap(CollisionMap.LSHAPE);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(100);
+        particleController.initialize(1000);
 
         degreeView = (TextView) findViewById(R.id.currentDegrees);
 

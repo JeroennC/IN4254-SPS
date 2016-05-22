@@ -69,7 +69,7 @@ public class CollisionMap {
         // Bottom layer
         for (int y = 20; y < 40; y++) {
             for (int x = 0; x < width; x++) {
-                if (x >= 20)
+                if (x >= 30)
                     map[y][x] = true;
             }
         }
