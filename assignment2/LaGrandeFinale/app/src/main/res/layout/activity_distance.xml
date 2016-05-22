@@ -9,4 +9,48 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.github.dnvanderwerff.lagrandefinale.DistanceActivity">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Choose one of the options, and move accordingly"
+        android:id="@+id/text"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/walking"
+        android:text="Walking"
+        android:layout_below="@+id/text"
+        android:onClick="setWalking"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/standing"
+        android:layout_below="@+id/walking"
+        android:text="Standing still"
+        android:onClick="setStanding"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/stop"
+        android:layout_below="@+id/standing"
+        android:text="Stop measurements"
+        android:onClick="stopMeasurements"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/show"
+        android:layout_below="@+id/stop"
+        android:text="Show measurements"
+        android:onClick="showMeasurements"/>
+
+    <com.jjoe64.graphview.GraphView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/show"
+        android:id="@+id/graph" />
+
 </RelativeLayout>
