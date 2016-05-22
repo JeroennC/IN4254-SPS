@@ -14,10 +14,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Hei"
-        android:id="@+id/currentDegrees"
+        android:id="@+id/particleSurface"
         android:layout_alignBottom="@+id/compass"
-        android:layout_toEndOf="@+id/stepbutton"
+        android:layout_marginLeft="24dp"
         android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hei"
+        android:id="@+id/currentDegrees"
+        android:layout_alignBottom="@id/compass"
+        android:layout_marginBottom="24dp"
+        android:layout_marginRight="24dp"
+        android:layout_toLeftOf="@+id/compass" />
 
     <com.github.dnvanderwerff.lagrandefinale.view.CompassView
         android:layout_height="30pt"
@@ -36,9 +46,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/stepbutton"
-        android:layout_below="@+id/mapview"
-        android:layout_marginTop="10pt"
+        android:layout_marginTop="5pt"
         android:text="Step"
-        android:layout_centerHorizontal="true"
-        android:onClick="doStep"/>
+        android:onClick="doStep"
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>

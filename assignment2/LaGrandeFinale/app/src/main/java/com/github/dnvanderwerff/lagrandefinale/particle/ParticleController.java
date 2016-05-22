@@ -16,57 +16,98 @@ public class ParticleController {
     private NormalDistribution ndDirection;
     private List<Particle> alives, deads;
     private Random r;
+    private double surface, totalSurface;
+
+    public double getSurface() { return surface; }
+    public double getSurfaceFraction() { return surface / totalSurface; }
 
     public ParticleController(CollisionMap map) {
         this.map = map;
-        ndDirection = new NormalDistribution(0, 13);
+        ndDirection = new NormalDistribution(0, Math.toRadians(13));
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
+
+        surface = 0;
+
+        // Total surface
+        totalSurface = map.width / 10 * map.height / 10;
     }
 
     public void initialize(int particleAmount) {
         particles = new Particle[particleAmount];
         Random r = new Random(System.nanoTime());
         double x, y;
+        double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
         for (int i = 0; i < particleAmount; i++) {
             do {
                 x = r.nextDouble() * (map.width * 1.0 / 10);
                 y = r.nextDouble() * (map.height * 1.0 / 10);
             } while (!map.isValidLocation(x, y));
             particles[i] = new Particle(x, y);
+            if (particles[i].x < minX)
+                minX = particles[i].x;
+            else if (particles[i].x > maxX)
+                maxX = particles[i].x;
+
+            if (particles[i].y < minY)
+                minY = particles[i].y;
+            else if (particles[i].y > maxY)
+                maxY = particles[i].y;
         }
+
+        // Get surface
+        surface = (maxX - minX) * (maxY - minY);
     }
 
     /* Moves all particles */
-    public void move(double directionDegrees) {
+    public void move(double directionRadians) {
         alives.clear();
         deads.clear();
-
+        double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
+        double stepSize;
+        double newDirection;
         // Move particles
         for (int i = 0; i < particles.length; i++) {
             // Get step size
-            double stepSize = 0.3;
+            stepSize = 0.3;
+
             // Offset given direction by random value
-            double degreesOff = ndDirection.nextValue();
-            double directionRads = Math.toRadians(directionDegrees + degreesOff);
+            newDirection = directionRadians + ndDirection.nextValue();
+
             // Change particle position
-            particles[i].x += Math.sin(directionRads) * stepSize;
-            particles[i].y += -Math.cos(directionRads) * stepSize;
+            particles[i].x += Math.sin(newDirection) * stepSize;
+            particles[i].y += -Math.cos(newDirection) * stepSize;
 
             if (!map.isValidLocation(particles[i].x,particles[i].y)) {
                 deads.add(particles[i]);
             } else {
                 alives.add(particles[i]);
+                // If alive, update boundaries if needed
+                if (particles[i].x < minX)
+                    minX = particles[i].x;
+                else if (particles[i].x > maxX)
+                    maxX = particles[i].x;
+
+                if (particles[i].y < minY)
+                    minY = particles[i].y;
+                else if (particles[i].y > maxY)
+                    maxY = particles[i].y;
             }
         }
 
         // Reposition dead particles
-        for (Particle particle : deads) {
-            Particle dest = alives.get(r.nextInt(alives.size()));
-            particle.x = dest.x;
-            particle.y = dest.y;
+        // But not if there are none alive
+        if (alives.size() > 0) {
+            for (Particle particle : deads) {
+                Particle dest = alives.get(r.nextInt(alives.size()));
+                particle.x = dest.x;
+                particle.y = dest.y;
+            }
         }
+
+        // Calculate particle area
+        surface = (maxX - minX) * (maxY - minY);
     }
 
     public Particle[] getParticles() {

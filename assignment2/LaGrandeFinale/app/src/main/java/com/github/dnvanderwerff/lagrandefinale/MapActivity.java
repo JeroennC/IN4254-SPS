@@ -23,7 +23,7 @@ public class MapActivity extends AppCompatActivity {
     private ParticleController particleController;
     private MapView mapView;
     private CompassView compass;
-    private TextView degreeView;
+    private TextView degreeView, surfaceView;
 
     private Timer timer = new Timer();
 
@@ -40,11 +40,14 @@ public class MapActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
+        degreeView = (TextView) findViewById(R.id.currentDegrees);
+        surfaceView = (TextView) findViewById(R.id.particleSurface);
+
         collisionMap = new CollisionMap(CollisionMap.LSHAPE);
         particleController = new ParticleController(collisionMap);
         particleController.initialize(1000);
-
-        degreeView = (TextView) findViewById(R.id.currentDegrees);
+        // Show surface
+        surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 
         // Get compass
         compass = (CompassView) findViewById(R.id.compass);
@@ -63,13 +66,16 @@ public class MapActivity extends AppCompatActivity {
 
     public void doStep(View view) {
         // Get direction
-        double directionDegrees = degreeNorth;
+        double directionRadians = radianNorth;
 
         // Move particles
-        particleController.move(directionDegrees);
+        particleController.move(directionRadians);
 
         // Draw
         mapView.update();
+
+        // Show surface
+        surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
 

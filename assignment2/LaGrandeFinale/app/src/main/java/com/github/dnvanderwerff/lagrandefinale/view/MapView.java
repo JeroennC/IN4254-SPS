@@ -1,6 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.view;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -18,6 +19,7 @@ import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
 public class MapView extends View {
     private CollisionMap collisionMap;
     private ParticleController particleController;
+    private Bitmap background;
 
     public MapView(Context context) {
         super(context);
@@ -40,11 +42,42 @@ public class MapView extends View {
         particleController = pc;
     }
 
+    private void createBackground(int w, int h) {
+        if (collisionMap == null) return;
+        // Create bitmap of background
+        float tileW = ((float)w) / collisionMap.width;
+        float tileH = ((float)h) / collisionMap.height;
+
+        background = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(background);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        paint.setStrokeWidth(1.0f);
+
+        // Draw background
+        boolean[][] map = collisionMap.getMap();
+        for (int y = 0; y < collisionMap.height; y++) {
+            for (int x = 0; x < collisionMap.width; x++) {
+                if (map[y][x])
+                    paint.setColor(Color.WHITE);
+                else
+                    paint.setColor(Color.BLACK);
+
+                canvas.drawRect(x * tileW, y * tileH, x * tileW + tileW, y * tileH + tileH, paint);
+            }
+        }
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         setMeasuredDimension(
                 MeasureSpec.getSize(widthMeasureSpec),
                 MeasureSpec.getSize(heightMeasureSpec));
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        createBackground(w, h);
     }
 
     @Override
@@ -61,17 +94,8 @@ public class MapView extends View {
         paint.setStyle(Paint.Style.FILL);
 
         // Draw background
-        boolean[][] map = collisionMap.getMap();
-        for (int y = 0; y < collisionMap.height; y++) {
-            for (int x = 0; x < collisionMap.width; x++) {
-                if (map[y][x])
-                    paint.setColor(Color.WHITE);
-                else
-                    paint.setColor(Color.BLACK);
-
-                canvas.drawRect(x * tileW, y * tileH, x * tileW + tileW, y * tileH + tileH, paint);
-            }
-        }
+        canvas.drawColor(Color.BLACK);
+        canvas.drawBitmap(background,0,0, null);
 
         // Draw particools
         Particle[] particools = particleController.getParticles();
