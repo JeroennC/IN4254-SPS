@@ -47,7 +47,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         if (started) return;
         if (accelerator != null) {
             started = true;
-            mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_GAME);
+            mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_FASTEST);
         }
     }
 
@@ -55,7 +55,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
     protected void onResume() {
         super.onResume();
         if (!started) return;
-        mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this, accelerator, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     /* Unregister listeners */
@@ -109,8 +109,8 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
             x[i] = x[i-1] + binSize;
         }
 
-        List<Double> walking = new ArrayList<Double>(stdevWalking);
-        List<Double> standing = new ArrayList<Double>(stdevStanding);
+        List<Double> walking = new ArrayList<>(stdevWalking);
+        List<Double> standing = new ArrayList<>(stdevStanding);
         // TODO: of verwijder ik zo ook daadwerkelijk stdevWalking etc?
 
         // Compute histograms

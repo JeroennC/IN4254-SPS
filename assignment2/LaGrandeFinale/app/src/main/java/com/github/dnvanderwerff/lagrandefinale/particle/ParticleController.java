@@ -68,7 +68,7 @@ public class ParticleController {
         double stepSize;
         double newDirection;
         // Move particles
-        for (int i = 0; i < particles.length; i++) {
+        for (Particle p : particles) {
             // Get step size
             stepSize = 0.3;
 
@@ -76,23 +76,23 @@ public class ParticleController {
             newDirection = directionRadians + ndDirection.nextValue();
 
             // Change particle position
-            particles[i].x += Math.sin(newDirection) * stepSize;
-            particles[i].y += -Math.cos(newDirection) * stepSize;
+            p.x += Math.sin(newDirection) * stepSize;
+            p.y += -Math.cos(newDirection) * stepSize;
 
-            if (!map.isValidLocation(particles[i].x,particles[i].y)) {
-                deads.add(particles[i]);
+            if (!map.isValidLocation(p.x,p.y)) {
+                deads.add(p);
             } else {
-                alives.add(particles[i]);
+                alives.add(p);
                 // If alive, update boundaries if needed
-                if (particles[i].x < minX)
-                    minX = particles[i].x;
-                else if (particles[i].x > maxX)
-                    maxX = particles[i].x;
+                if (p.x < minX)
+                    minX = p.x;
+                else if (p.x > maxX)
+                    maxX = p.x;
 
-                if (particles[i].y < minY)
-                    minY = particles[i].y;
-                else if (particles[i].y > maxY)
-                    maxY = particles[i].y;
+                if (p.y < minY)
+                    minY = p.y;
+                else if (p.y > maxY)
+                    maxY = p.y;
             }
         }
 

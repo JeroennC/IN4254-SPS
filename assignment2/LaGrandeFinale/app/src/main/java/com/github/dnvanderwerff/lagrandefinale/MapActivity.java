@@ -1,5 +1,6 @@
 package com.github.dnvanderwerff.lagrandefinale;
 
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.SensorManager;
 import android.os.Handler;
@@ -7,18 +8,20 @@ import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
 import android.widget.TextView;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
 import com.github.dnvanderwerff.lagrandefinale.util.DirectionExtractor;
+import com.github.dnvanderwerff.lagrandefinale.util.StepDetector;
 import com.github.dnvanderwerff.lagrandefinale.view.CompassView;
 import com.github.dnvanderwerff.lagrandefinale.view.MapView;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MapActivity extends AppCompatActivity {
+public class MapActivity extends Activity {
     private CollisionMap collisionMap;
     private ParticleController particleController;
     private MapView mapView;
@@ -30,6 +33,7 @@ public class MapActivity extends AppCompatActivity {
     /* Sensor stuff */
     private SensorManager mSensorManager;
     private DirectionExtractor directionExtractor;
+    private StepDetector stepDetector;
 
     /* Variables */
     private int degreeNorth, degreeMe;
@@ -43,7 +47,7 @@ public class MapActivity extends AppCompatActivity {
         degreeView = (TextView) findViewById(R.id.currentDegrees);
         surfaceView = (TextView) findViewById(R.id.particleSurface);
 
-        collisionMap = new CollisionMap(CollisionMap.LSHAPE);
+        collisionMap = new CollisionMap(CollisionMap.FLOOR9);
         particleController = new ParticleController(collisionMap);
         particleController.initialize(1000);
         // Show surface
@@ -59,6 +63,7 @@ public class MapActivity extends AppCompatActivity {
         // Get sensors
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         directionExtractor = new DirectionExtractor(mSensorManager);
+        stepDetector = new StepDetector(mSensorManager, mHandler);
 
         /* Timer */
         timer.scheduleAtFixedRate(new updateCompassTask(),1000, 30);
@@ -75,9 +80,8 @@ public class MapActivity extends AppCompatActivity {
         mapView.update();
 
         // Show surface
-        surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
+        //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
-
 
     /* Class updating compass */
     class updateCompassTask extends TimerTask {
@@ -95,18 +99,30 @@ public class MapActivity extends AppCompatActivity {
     /* Handler to update UI */
     public Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
-            degreeView.setText(degreeNorth + "d");
-            compass.update(radianNorth, radianMe);
+            switch (msg.what) {
+                case 1:
+                    degreeView.setText(degreeNorth + "d");
+                    compass.update(radianNorth, radianMe);
+                    surfaceView.setText("I am " + stepDetector.getState().toString());
+                    break;
+                case StepDetector.STEP_HANDLER_ID:
+                    doStep(null);
+                    break;
+            }
         }
-    };/* Register listeners */
+    };
+
+    /* Register listeners */
     protected void onResume() {
         super.onResume();
         directionExtractor.registerListeners(mSensorManager);
+        stepDetector.registerListeners(mSensorManager);
     }
 
     /* Unregister listeners */
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(directionExtractor);
+        mSensorManager.unregisterListener(stepDetector);
     }
 }
