@@ -88,9 +88,10 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         standing = false;
     }
 
-    // Values can be adapted
-    int nrBins = 15; // nr of bins
-    double binSize = 0.1;
+    /* Histogram stuff, values can be adapted */
+    int nrBins = 30; // Initial nr of bins
+    double maxValWalking = 0;
+    double binSize = 0.05;
 
     /* Show the collected values of the acc data standard deviation */
     public void showMeasurements(View view) {
@@ -98,6 +99,17 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         standing = false;
 
         if (stdevStanding.isEmpty() || stdevWalking.isEmpty()) return;
+
+        // Compute max values in stdevWalking array
+        maxValWalking = 0;
+        for (double i : stdevWalking) {
+            if (i > maxValWalking) {
+                maxValWalking = i;
+            }
+        }
+
+        // Set nr of bins for histogram
+        nrBins = (int) Math.ceil(maxValWalking / binSize);
 
         double[] yStanding = new double[nrBins]; // Defaults to array of zeroes
         double[] yWalking = new double[nrBins];
@@ -109,36 +121,18 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
             x[i] = x[i-1] + binSize;
         }
 
-        List<Double> walking = new ArrayList<>(stdevWalking);
-        List<Double> standing = new ArrayList<>(stdevStanding);
-        // TODO: of verwijder ik zo ook daadwerkelijk stdevWalking etc?
-
         // Compute histograms
-        for (int i = 0; i < nrBins; i++ ) {
-            // Walking
-            int j = 0;
-            while (j < walking.size()) {
-                if ((walking.get(j) >= x[i] - 0.5 * binSize) &&
-                        (walking.get(j) < x[i] + 0.5 * binSize)) {
-                    yWalking[i]++;
-                    walking.remove(j);
-                }
-                j++;
-            }
-
-            // Standing still
-            j = 0;
-            while (j < standing.size()) {
-                if ((standing.get(j) >= x[i] - 0.5 * binSize) &&
-                        (standing.get(j) < x[i] + 0.5 * binSize)) {
-                    yStanding[i]++;
-                    standing.remove(j);
-                }
-                j++;
-            }
+        for (double i : stdevWalking) {
+            int index = (int) Math.floor(i / binSize); // Bin nr where stdevWalking belongs to
+            yWalking[index]++;
         }
 
-        // Normalize the histogram
+        for (double i : stdevStanding) {
+            int index = (int) Math.floor(i / binSize); // Bin nr where stdevStanding belongs to
+            yStanding[index]++;
+        }
+
+        // Normalize the histograms
         for (int i = 0; i < nrBins; i++) {
             yWalking[i] /= (double) stdevWalking.size();
             yStanding[i] /= (double) stdevStanding.size();
@@ -157,7 +151,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
             seriesStanding.appendData(new DataPoint(x[i], yStanding[i]), true, nrBins);
         }
 
-        graph.removeAllSeries();;
+        graph.removeAllSeries();
         seriesWalking.setColor(Color.GREEN);
         graph.addSeries(seriesWalking);
         seriesStanding.setColor(Color.BLUE);
@@ -186,7 +180,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
     List<Double> stdevWalking = new ArrayList<>();      // List of stdevs per time window for walking
     List<Double> stdevStanding = new ArrayList<>();     // List of stdevs per time windows for standing still
 
-    long TimeWindow = 200;                              // Time window in ms, can be adapted
+    long TimeWindow = 700;                              // Time window in ms, can be adapted
     long endOfWindow = System.currentTimeMillis() + TimeWindow; // Set current endOfWindow
 
     /* On sensor changed  */
@@ -231,5 +225,4 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         // Not needed
     }
 
-    // TODO close gracefully function
 }
