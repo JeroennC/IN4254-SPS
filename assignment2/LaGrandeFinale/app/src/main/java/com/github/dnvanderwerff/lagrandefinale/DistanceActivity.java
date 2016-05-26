@@ -16,6 +16,8 @@ import java.util.List;
 import com.jjoe64.graphview.*;
 import com.jjoe64.graphview.series.*;
 
+
+
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
     /* Accelerator stuff */
