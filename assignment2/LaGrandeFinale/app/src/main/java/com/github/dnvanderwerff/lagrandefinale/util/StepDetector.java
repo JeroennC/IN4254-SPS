@@ -66,7 +66,7 @@ public class StepDetector implements SensorEventListener {
             if (sd <= 0.2) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if (sd >= .9) {
+            } else if ((new AutoCorrelation(accMagnitude)).currentState.equals(AutoCorrelation.State.WALKING)) {
                 // Change state to walking
                 currentState = State.WALKING;
             }

@@ -8,9 +8,9 @@ import java.util.List;
 
 
 /* AutoCorrelation class. Upon creation of an AutoCorrelation object for a certain accelerator
- * signal and sample nr, this class immediately determines the corresponding state (STILL or
+ * signal, this class immediately determines the corresponding state (STILL or
  * WALKING) and if necessary the period of walking. All based on normalized auto-correlation
- * as described by http://research.microsoft.com/pubs/166309/com273-chintalapudi.pdf.  
+ * as described by http://research.microsoft.com/pubs/166309/com273-chintalapudi.pdf.
  */
 public class AutoCorrelation {
 
@@ -18,14 +18,16 @@ public class AutoCorrelation {
                                                 // juiste waarden hangen af van sampling freq van sensor
 
     private List<Double> accData;   // Accelerator signal
-    private State currentState;     // Activity state of user
-    private int optPeriod;          // Equals step periodicity of user if the user is walking, 0 otherwise.
-    private int m;                  // Sample nr
+    public State currentState;      // Activity state of user
+    public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
 
     public enum State {
         STILL,WALKING
     }
 
+    /* Class to contain the result of norm. auto-correlation: max value of psi on the interval
+     * tMin to tMax and the corresponding period.
+     */
     private class Result {
 
         public int period;
@@ -38,23 +40,36 @@ public class AutoCorrelation {
     }
 
     /* Constructor */
-    public AutoCorrelation(List<Double> accData, int m) {
+    public AutoCorrelation(List<Double> accData) {
         this.accData = accData;
         this.optPeriod = 0;
         this.currentState = State.STILL;
-        this.m = m;
 
-        setState(m);
+        // Set state of user for given accData window
+        setState();
     }
 
     /* Set state of user for sample m by checking value of psi(m) */
-    public void setState(int m) {
+    public void setState() {
 
-        Result res = maxNormAutoCorrelation(m, tMin, tMax);
+        int m = this.accData.size();
 
-        if (res.max > 0.7 ) {       // TODO voorlopig gelijk aan 0.7 uit paper, check of dit daadwerkelijk beste waarde is
+        int walkingCount = 0;
+        int optPeriod = 0;
+
+        for (int i = 0; i < (m - 2*tMax); i++) {
+            Result res = maxNormAutoCorrelation(i, tMin, tMax);
+
+            if(res.max > 0.7) { // TODO voorlopig gelijk aan 0.7 uit paper, check of dit daadwerkelijk beste waarde is
+                walkingCount++;
+                optPeriod += res.period;
+            }
+        }
+
+        // If majority of tested samples indicates WALKING, adjust state and period of user
+        if (walkingCount > (m - 2*tMax)/2) {
             this.currentState = State.WALKING;
-            this.optPeriod = res.period;
+            this.optPeriod = optPeriod / (m - 2*tMax);
         }
     }
 
