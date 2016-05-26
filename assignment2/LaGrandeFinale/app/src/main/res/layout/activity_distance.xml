@@ -47,10 +47,19 @@
         android:text="Show measurements"
         android:onClick="showMeasurements"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Value of sigma to be used is: "
+        android:layout_below="@+id/show"
+        android:id="@+id/sigma"/>
+
     <com.jjoe64.graphview.GraphView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/show"
-        android:id="@+id/graph" />
+        android:layout_below="@+id/sigma"
+        android:id="@+id/graph"/>
+
+
 
 </RelativeLayout>

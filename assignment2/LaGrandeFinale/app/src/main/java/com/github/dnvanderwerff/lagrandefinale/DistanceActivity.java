@@ -9,12 +9,15 @@ import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.jjoe64.graphview.*;
 import com.jjoe64.graphview.series.*;
+
+
 
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -24,6 +27,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
     private float[] accelVals;
     private boolean started = false;
     private final static float ALPHA = 0.25f;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,7 +122,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         // Fill x with values to be displayed (i.e. bin centres)
         x[0] = 0.5 * binSize;
         for (int i = 1; i < nrBins; i++) {
-            x[i] = x[i-1] + binSize;
+            x[i] = x[i - 1] + binSize;
         }
 
         // Compute histograms
@@ -138,10 +142,17 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
             yStanding[i] /= (double) stdevStanding.size();
         }
 
+        // Show optimum value of sigma
+        double sig = x[min(yWalking, yStanding)];
+        TextView sigma = (TextView) findViewById(R.id.sigma);
+        String test = "Value of sigma to be used is: " + sig + " ." ;
+        sigma.setText(test);
+        // TODO  deze setText update niet altijd.. Weet niet waarom
+
         // Plot (x, yWalking) and (x, yStanding)
         GraphView graph = (GraphView) findViewById(R.id.graph);
-        DataPoint[] dataWalking = new DataPoint[] {};
-        DataPoint[] dataStanding = new DataPoint[] {};
+        DataPoint[] dataWalking = new DataPoint[]{};
+        DataPoint[] dataStanding = new DataPoint[]{};
 
         LineGraphSeries<DataPoint> seriesWalking = new LineGraphSeries<>(dataWalking);
         LineGraphSeries<DataPoint> seriesStanding = new LineGraphSeries<>(dataStanding);
@@ -156,7 +167,20 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         graph.addSeries(seriesWalking);
         seriesStanding.setColor(Color.BLUE);
         graph.addSeries(seriesStanding);
+    }
 
+    /* Adds two equally sized arrays and returns the index of the minimum value of the resulting array */
+    private int min(double[] a, double[] b) {
+        double min = Integer.MAX_VALUE;
+        int index = 0;
+
+        for (int i = 0; i < a.length; i++) { // TODO maybe adjust boundaries to be completely sure that actual value is returned, and not values on the far right side of plot for example
+            if (a[i] + b[i] < min) {
+                min = a[i] + b[i];
+                index = i;
+            }
+        }
+        return index;
     }
 
     /* Compute standard deviation of a list */
