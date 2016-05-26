@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 
+import com.github.dnvanderwerff.lagrandefinale.particle.Cell;
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 import com.github.dnvanderwerff.lagrandefinale.particle.Particle;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
@@ -55,16 +56,42 @@ public class MapView extends View {
         paint.setStrokeWidth(1.0f);
 
         // Draw background
-        boolean[][] map = collisionMap.getMap();
+        int[][] map = collisionMap.getMap();
         for (int y = 0; y < collisionMap.height; y++) {
             for (int x = 0; x < collisionMap.width; x++) {
-                if (map[y][x])
+                if (map[y][x] != 0)
                     paint.setColor(Color.WHITE);
                 else
                     paint.setColor(Color.BLACK);
 
                 canvas.drawRect(x * tileW, y * tileH, x * tileW + tileW, y * tileH + tileH, paint);
             }
+        }
+
+        // Draw cell numbers
+        paint.setTextSize(48);
+        float meterW = tileW * 10;
+        float meterH = tileH * 10;
+        float tpX, tpY;
+        String ctxt;
+        Cell[] cells = collisionMap.getCells();
+        paint.setTextAlign(Paint.Align.CENTER);
+        for (Cell c : cells) {
+            paint.setStyle(Paint.Style.STROKE);
+            canvas.drawRect(
+                    c.x * meterW,
+                    c.y * meterH,
+                    (c.x + c.width) * meterW,
+                    (c.y + c.height) * meterH,
+                    paint);
+            paint.setStyle(Paint.Style.FILL);
+            ctxt = "C" + c.cellNo;
+            tpX = (c.x + c.width / 2) * meterW;
+            tpY = (c.y + c.height / 2) * meterH - ((paint.descent() + paint.ascent()) / 2.0f);
+            canvas.drawText(ctxt,
+                    tpX,
+                    tpY,
+                    paint);
         }
     }
 

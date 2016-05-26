@@ -17,6 +17,8 @@ public class ParticleController {
     private List<Particle> alives, deads;
     private Random r;
     private double surface, totalSurface;
+    private int[] cellDist;
+    private String activeCell;
 
     public double getSurface() { return surface; }
     public double getSurfaceFraction() { return surface / totalSurface; }
@@ -27,6 +29,7 @@ public class ParticleController {
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
+        cellDist = new int[map.getCellCount() ];
 
         surface = 0;
 
@@ -67,6 +70,11 @@ public class ParticleController {
         double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
         double stepSize;
         double newDirection;
+        int cell;
+
+        for (int i = 0; i < cellDist.length; i++)
+            cellDist[i] = 0;
+
         // Move particles
         for (Particle p : particles) {
             // Get step size
@@ -79,10 +87,12 @@ public class ParticleController {
             p.x += Math.sin(newDirection) * stepSize;
             p.y += -Math.cos(newDirection) * stepSize;
 
-            if (!map.isValidLocation(p.x,p.y)) {
+            cell = map.getCell(p.x, p.y);
+            if (cell == 0) {
                 deads.add(p);
             } else {
                 alives.add(p);
+                cellDist[cell] += 1;
                 // If alive, update boundaries if needed
                 if (p.x < minX)
                     minX = p.x;
@@ -108,9 +118,26 @@ public class ParticleController {
 
         // Calculate particle area
         surface = (maxX - minX) * (maxY - minY);
+    
+        // Define which cells user is in
+        float p30 = alives.size() * 0.3f;
+        activeCell = "";
+        for (int i = 0; i < cellDist.length; i++) {
+            if (cellDist[i] >= p30) {
+                if (!activeCell.equals(""))
+                    activeCell += ",";
+                activeCell += "C" + i;
+            }
+        }
+        if (activeCell.equals(""))
+            activeCell = "No dominant cells";
     }
 
     public Particle[] getParticles() {
         return particles;
+    }
+
+    public String getActiveCell() {
+        return activeCell;
     }
 }
