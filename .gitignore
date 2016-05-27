@@ -30,3 +30,6 @@ proguard/
 
 # Android Studio captures folder
 captures/
+
+# .idea/misc
+assignment2/LaGrandeFinale/.idea/misc.xml

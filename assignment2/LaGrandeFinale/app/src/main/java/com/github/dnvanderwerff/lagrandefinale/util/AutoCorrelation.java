@@ -1,5 +1,6 @@
 package com.github.dnvanderwerff.lagrandefinale.util;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,8 +15,7 @@ import java.util.List;
  */
 public class AutoCorrelation {
 
-    public static final int tMin = 40, tMax = 100; // Voorlopig even waarden uit paper gehaald,
-                                                // juiste waarden hangen af van sampling freq van sensor
+    public static final int tMin = 35, tMax = 80; // TODO pas deze waarden aan naar iets logisch
 
     private List<Double> accData;   // Accelerator signal
     public State currentState;      // Activity state of user
@@ -134,4 +134,53 @@ public class AutoCorrelation {
 
     // TODO  sample m uit paper, is dat array[m] (dus basically element m+1) of gewoon echt het m'de element? Voor nu is array[m] gebruikt,
     // maar dit zou er dus 1 sample naast kunnen zitten
+
+
+
+
+
+
+    private List<Double> findPeaks(List<Double> a) {
+
+        double max = 0;
+        List<Double> peaks = new ArrayList<Double>();
+
+        int startWindow = 0;
+        int endWindow = startWindow + tMax;
+        int delta = tMin;                       // Minimum amount of samples between peaks
+        int peakLoc = 0;
+
+        for (int i = 0; i < a.size(); ) {
+
+            for (int j = i; j < endWindow; j++) {
+                if (a.get(j) > max) {
+                    max = a.get(j);
+                    peakLoc = j;
+
+                }
+                // max now equals global max within window tMax
+            }
+
+            peaks.add(max);
+            max = 0;
+
+            if (peakLoc + delta + tMax >= a.size()) return peaks;
+
+            i = peakLoc + delta;     // Minimal possible index for new peak
+            endWindow = i + tMax;   // Maximum possible index for new peak
+
+
+        }
+
+        return peaks;
+
+    }
+
+
+
+
+
+
+
+
 }
