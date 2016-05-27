@@ -13,7 +13,7 @@ import java.util.Random;
 public class ParticleController {
     private CollisionMap map;
     private Particle[] particles;
-    private NormalDistribution ndDirection;
+    private NormalDistribution ndDirection, ndStepSize;
     private List<Particle> alives, deads;
     private Random r;
     private double surface, totalSurface;
@@ -26,6 +26,7 @@ public class ParticleController {
     public ParticleController(CollisionMap map) {
         this.map = map;
         ndDirection = new NormalDistribution(0, Math.toRadians(13));
+        ndStepSize = new NormalDistribution(0.7, 0.15);
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
@@ -78,7 +79,7 @@ public class ParticleController {
         // Move particles
         for (Particle p : particles) {
             // Get step size
-            stepSize = 0.3;
+            stepSize = ndStepSize.nextValue();
 
             // Offset given direction by random value
             newDirection = directionRadians + ndDirection.nextValue();
@@ -114,6 +115,9 @@ public class ParticleController {
                 particle.x = dest.x;
                 particle.y = dest.y;
             }
+        } else {
+            // At this point, the system needs to recover, as the cluster of particles is in the wrong location.. what is this called again?
+
         }
 
         // Calculate particle area

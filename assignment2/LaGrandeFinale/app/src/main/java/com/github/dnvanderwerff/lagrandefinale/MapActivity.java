@@ -2,6 +2,7 @@ package com.github.dnvanderwerff.lagrandefinale;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Message;
@@ -22,6 +23,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MapActivity extends Activity {
+    public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
+
     private CollisionMap collisionMap;
     private ParticleController particleController;
     private MapView mapView;
@@ -48,7 +51,10 @@ public class MapActivity extends Activity {
         surfaceView = (TextView) findViewById(R.id.particleSurface);
         cellView = (TextView) findViewById(R.id.cellText);
 
-        collisionMap = new CollisionMap(CollisionMap.LSHAPE);
+        Intent intent = getIntent();
+        int mapType = intent.getIntExtra(MAP_TYPE_MSG, CollisionMap.FLOOR9);
+
+        collisionMap = new CollisionMap(mapType);
         particleController = new ParticleController(collisionMap);
         particleController.initialize(1000);
         // Show surface

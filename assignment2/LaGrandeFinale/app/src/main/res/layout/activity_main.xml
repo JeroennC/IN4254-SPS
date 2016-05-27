@@ -28,10 +28,18 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="ParticleMapdev"
-        android:id="@+id/particlemapdev"
-        android:onClick="startParticleMap"
+        android:text="L Shape"
+        android:id="@+id/LSHAPE"
+        android:onClick="startParticleMapLShape"
         android:layout_below="@id/magnetdev"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="9th Floor"
+        android:id="@+id/FLOOR9"
+        android:onClick="startParticleMapFloor9"
+        android:layout_below="@id/LSHAPE"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -39,6 +47,6 @@
         android:text="Measure Accel"
         android:id="@+id/acceleration"
         android:onClick="startAccelMeas"
-        android:layout_below="@id/particlemapdev"/>
+        android:layout_below="@id/FLOOR9"/>
 
 </RelativeLayout>

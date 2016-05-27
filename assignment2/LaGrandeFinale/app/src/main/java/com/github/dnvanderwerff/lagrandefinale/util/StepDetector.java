@@ -7,6 +7,7 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -28,6 +29,7 @@ public class StepDetector implements SensorEventListener {
     private State currentState = State.STILL;
     private float[] accelVals;
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
+    LinkedList<Double> accMagnitudeHistory; // List of acc magnitudes with up to three? time windows
     long TimeWindow = 700;                              // Time window in ms, can be adapted
     long endOfWindow; // Set current endOfWindow
 
@@ -42,6 +44,7 @@ public class StepDetector implements SensorEventListener {
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         accMagnitude = new ArrayList<>();
+        accMagnitudeHistory = new LinkedList<>();
 
         endOfWindow = System.currentTimeMillis() + TimeWindow;
 
@@ -63,10 +66,18 @@ public class StepDetector implements SensorEventListener {
             // Calculate standard deviation
             double sd = sd(accMagnitude);
 
+            // Add new values to history
+            accMagnitudeHistory.addAll(accMagnitude);
+
+            // Remove old history values
+            int samplesToKeep = (int)(3*TimeWindow) / 20; // 20 ms per sample
+            while (accMagnitudeHistory.size() > samplesToKeep)
+                accMagnitudeHistory.removeFirst();
+
             if (sd <= 0.2) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if ((new AutoCorrelation(accMagnitude)).currentState.equals(AutoCorrelation.State.WALKING)) {
+            } else if (sd >= 0.9) {//((new AutoCorrelation(accMagnitude)).currentState.equals(AutoCorrelation.State.WALKING)) {
                 // Change state to walking
                 currentState = State.WALKING;
             }

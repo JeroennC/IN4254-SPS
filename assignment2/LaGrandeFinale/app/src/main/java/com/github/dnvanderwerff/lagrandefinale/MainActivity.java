@@ -6,6 +6,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 
+import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,8 +27,15 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void startParticleMap(View view) {
+    public void startParticleMapLShape(View view) {
         Intent intent = new Intent(this, MapActivity.class);
+        intent.putExtra(MapActivity.MAP_TYPE_MSG, CollisionMap.LSHAPE);
+        startActivity(intent);
+    }
+
+    public void startParticleMapFloor9(View view) {
+        Intent intent = new Intent(this, MapActivity.class);
+        intent.putExtra(MapActivity.MAP_TYPE_MSG, CollisionMap.FLOOR9);
         startActivity(intent);
     }
 
