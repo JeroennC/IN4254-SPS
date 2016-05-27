@@ -26,7 +26,7 @@ public class MapActivity extends Activity {
     private ParticleController particleController;
     private MapView mapView;
     private CompassView compass;
-    private TextView degreeView, surfaceView;
+    private TextView degreeView, surfaceView, cellView;
 
     private Timer timer = new Timer();
 
@@ -46,8 +46,9 @@ public class MapActivity extends Activity {
 
         degreeView = (TextView) findViewById(R.id.currentDegrees);
         surfaceView = (TextView) findViewById(R.id.particleSurface);
+        cellView = (TextView) findViewById(R.id.cellText);
 
-        collisionMap = new CollisionMap(CollisionMap.FLOOR9);
+        collisionMap = new CollisionMap(CollisionMap.LSHAPE);
         particleController = new ParticleController(collisionMap);
         particleController.initialize(1000);
         // Show surface
@@ -80,6 +81,7 @@ public class MapActivity extends Activity {
         mapView.update();
 
         // Show surface
+        cellView.setText(particleController.getActiveCell());
         //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
