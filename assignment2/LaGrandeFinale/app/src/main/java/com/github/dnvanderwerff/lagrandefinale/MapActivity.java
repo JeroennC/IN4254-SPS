@@ -48,9 +48,9 @@ public class MapActivity extends Activity {
         surfaceView = (TextView) findViewById(R.id.particleSurface);
         cellView = (TextView) findViewById(R.id.cellText);
 
-        collisionMap = new CollisionMap(CollisionMap.FLOOR9);
+        collisionMap = new CollisionMap(CollisionMap.LSHAPE);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(10);
+        particleController.initialize(1000);
         // Show surface
         surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 

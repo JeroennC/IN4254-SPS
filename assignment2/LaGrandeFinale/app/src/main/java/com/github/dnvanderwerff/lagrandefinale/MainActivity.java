@@ -29,4 +29,9 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MapActivity.class);
         startActivity(intent);
     }
+
+    public void startAccelMeas(View view) {
+        Intent intent = new Intent(this, AccelerationMeasure.class);
+        startActivity(intent);
+    }
 }

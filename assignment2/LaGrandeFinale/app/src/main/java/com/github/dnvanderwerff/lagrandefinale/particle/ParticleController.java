@@ -118,7 +118,7 @@ public class ParticleController {
 
         // Calculate particle area
         surface = (maxX - minX) * (maxY - minY);
-    
+
         // Define which cells user is in
         float p30 = alives.size() * 0.3f;
         activeCell = "";
