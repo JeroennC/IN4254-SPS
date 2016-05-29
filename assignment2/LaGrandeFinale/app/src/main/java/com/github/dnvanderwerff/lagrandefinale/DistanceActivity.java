@@ -10,6 +10,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -31,12 +32,12 @@ import com.jjoe64.graphview.series.*;
 
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
-    private float[] accelVals;
-    private boolean started = false;
-    private final static float ALPHA = 0.25f;
     public final static int PERM_REQ_EXTWRITE = 1;
-    private boolean canWrite = false;
+    private final static float ALPHA = 0.25f;
     private final AppCompatActivity act = this;
+    private float[] accelVals;
+    private boolean canWrite = false;
+    private boolean started = false;
 
     /* Sensor stuff */
     private SensorManager mSensorManager;
@@ -46,7 +47,6 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
     private File file;
     private FileOutputStream fileStream;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +54,10 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
 
         // Start accelerator business
         startAccelerator();
+
+        // Get file location
+        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        file = new File(path, "stdev.dat");
 
         // Write file permissions
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -66,7 +70,6 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         } else {
             openFile();
         }
-
     }
 
     private void startAccelerator() {
@@ -184,7 +187,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         double still_abovethresh = 0;
 
         for (int i = 0; i < nrBins; i++) {
-            if (i < sig) {
+            if (x[i] < sig) {
                 still_belowthresh += yStanding[i];
             } else {
                 still_abovethresh += yStanding[i];
