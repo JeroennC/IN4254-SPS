@@ -1,16 +1,26 @@
 package com.github.dnvanderwerff.lagrandefinale;
 
+import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,12 +31,20 @@ import com.jjoe64.graphview.series.*;
 
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
-    /* Accelerator stuff */
-    private SensorManager mSensorManager;
-    private Sensor accelerator;
     private float[] accelVals;
     private boolean started = false;
     private final static float ALPHA = 0.25f;
+    public final static int PERM_REQ_EXTWRITE = 1;
+    private boolean canWrite = false;
+    private final AppCompatActivity act = this;
+
+    /* Sensor stuff */
+    private SensorManager mSensorManager;
+    private Sensor accelerator;
+
+    /* File stuff */
+    private File file;
+    private FileOutputStream fileStream;
 
 
     @Override
@@ -36,6 +54,19 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
 
         // Start accelerator business
         startAccelerator();
+
+        // Write file permissions
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    }
+                    , PERM_REQ_EXTWRITE);
+        } else {
+            openFile();
+        }
+
     }
 
     private void startAccelerator() {
@@ -112,6 +143,9 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
             }
         }
 
+        int standingSamples = stdevStanding.size();
+        int walkingSamples = stdevWalking.size();
+
         // Set nr of bins for histogram
         nrBins = (int) Math.ceil(maxValWalking / binSize);
 
@@ -144,10 +178,22 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
 
         // Show optimum value of sigma
         double sig = x[min(yWalking, yStanding)];
+
+        // Compute accuracy
+        double still_belowthresh = 0;
+        double still_abovethresh = 0;
+
+        for (int i = 0; i < nrBins; i++) {
+            if (i < sig) {
+                still_belowthresh += yStanding[i];
+            } else {
+                still_abovethresh += yStanding[i];
+            }
+        }
+
         TextView sigma = (TextView) findViewById(R.id.sigma);
-        String test = "Value of sigma to be used is: " + sig + " ." ;
+        String test = "Sig: " + sig + " - Below: " + still_belowthresh + " - Above: " + still_abovethresh + " - Nr samples walk: " + walkingSamples + " - still: " + standingSamples + ".";
         sigma.setText(test);
-        // TODO  deze setText update niet altijd.. Weet niet waarom
 
         // Plot (x, yWalking) and (x, yStanding)
         GraphView graph = (GraphView) findViewById(R.id.graph);
@@ -230,6 +276,19 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
                 stdevStanding.add(sd(accMagnitude));
             }
 
+            if (canWrite) {
+                try {
+                    if (walking) {
+                        fileStream.write(("W|" + String.format("%.2f", sd(accMagnitude)) + "\n").getBytes());
+                    } else if (standing) {
+                        fileStream.write(("S|" + String.format("%.2f", sd(accMagnitude)) + "\n").getBytes());
+                    }
+                    fileStream.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             accMagnitude.clear();
             endOfWindow = System.currentTimeMillis() + TimeWindow;
         }
@@ -247,6 +306,55 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // Not needed
+    }
+
+    // Permissions callback
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERM_REQ_EXTWRITE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    openFile();
+                } else {
+                    // Well damnit :(
+                    closeGracefully("No file writing permissions");
+                }
+                return;
+            }
+        }
+    }
+
+    // Opens file to write to
+    private void openFile() {
+        try {
+            fileStream = new FileOutputStream(file, true);
+            Log.i("openFile", "Data Saved to " + file.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e("SAVE DATA", "Could not write file " + e.getMessage());
+            closeGracefully("Error opening file");
+            return;
+        }
+
+        canWrite = true;
+    }
+
+    /**
+     * Closes ever so gracefully
+     */
+    private void closeGracefully(String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                act.finish();
+            }
+        });
+        builder.setMessage(message);
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
 }
