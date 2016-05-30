@@ -10,19 +10,23 @@ import java.util.List;
 
 public class AutoCorrelation {
 	private int offsetL, offsetR;
+	private int windowSize;
 
 	public AutoCorrelation() {
-		offsetL = 50;
-		offsetR = 50;
+		offsetL = 5;
+		offsetR = 5;
+		windowSize = offsetL + offsetR;
 	}
 	
 	public void processData(LinkedList<Double> magnitudeData) {
 		// Find the last two peaks in data
-		int peak1 = 50;
-		int peak2 = 150;
+		int peak1 = 5;
+		int peak2 = 15;
+		
 		// Separate out f and g
-		double f[] = new double[100];
-		double g[] = new double[100];
+		double f[] = new double[windowSize];
+		double g[] = new double[windowSize];
+		
 		// Get starting and ending indices
 		int fstart = peak1 - offsetL < 0 ? 0 : peak1 - offsetL;
 		int fend = peak1 + offsetR > magnitudeData.size() ? magnitudeData.size() : peak1 + offsetR;
@@ -57,9 +61,16 @@ public class AutoCorrelation {
 		// Find the optimal autocorrelation
 		double opt = getOptimalAutocorrelation(f,g);
 		
-		System.out.printf("The optimal: %.2f", opt);
+		// Get corresponding timewindow
+		int samplesBetween = (peak2 - peak1) // time between peaks
+				- (g.length - optimalI - 1);
+		
+		double timewindow = samplesBetween * 20; // Samples times 20 ms
+		
+		System.out.printf("The optimal: %.4f with sampleWindow = %d and timewindow = %.2f\n", opt, samplesBetween, timewindow);
 	}
 	
+	int optimalI;
 	/* Shift g over f and try to find the optimal autocorrelation */
 	private double getOptimalAutocorrelation(double f[], double g[]) {
 		double optimalCorrelation = Double.MIN_VALUE;
@@ -71,6 +82,7 @@ public class AutoCorrelation {
 			if (val > optimalCorrelation) {
 				optimalCorrelation = val;
 				// TODO store the corresponding variables
+				optimalI = i;
 			}
 		}
 		
@@ -86,7 +98,11 @@ public class AutoCorrelation {
 			result += f[fi + i] * g[gi + i];
 		}
 		
-		return result;
+		// Divide by the standard deviations
+		result /= sd(f, mean(f)) * sd(g, mean(g));
+
+		// Normalize and return
+		return result / overlap;
 	}
 	
 	/* Compute mean of an array */
@@ -122,7 +138,6 @@ public class AutoCorrelation {
 			lines.remove(0);
 			for (String str : lines) {
 				String[] parts = str.split("\\|");
-				System.out.println(parts[0] + parts[1] + parts[2]);
 				dataHistory.add(Double.parseDouble(parts[2]));
 			}
 		} catch (IOException e) {
@@ -131,6 +146,16 @@ public class AutoCorrelation {
 		}
 		
 		ac.processData(dataHistory);
+		
+		// Try this
+		LinkedList<Double> dataHistory2 = new LinkedList<Double>();
+		for (int i = 0 ; i < ac.windowSize; i++) {
+			dataHistory2.add(dataHistory.get(i));
+		}
+		for (int i = 0 ; i < ac.windowSize; i++) {
+			dataHistory2.add(dataHistory.get(i));
+		}
+		ac.processData(dataHistory2);
 		
 	}
 
