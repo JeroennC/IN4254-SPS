@@ -1,0 +1,97 @@
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+
+public class main {
+	public static final int tMin = 35, tMax = 80; // TODO pas deze waarden aan naar iets logisch
+	
+	
+	
+	public static Result findPeaks(List<Double> a) {
+		
+	    double max = 0;
+	    List<Double> peaks = new ArrayList<Double>();
+	    List<Integer> indices = new ArrayList<Integer>();
+	    
+	    int startWindow = 0;
+	    int endWindow = startWindow + tMax;
+	    int delta = tMin;                       // Minimum amount of samples between peaks
+	    int peakLoc = 0;
+	
+	    for (int i = 0; i < a.size(); ) {
+	
+	        for (int j = i; j < endWindow; j++) {
+	            if (a.get(j) > max) {
+	                max = a.get(j);
+	                peakLoc = j;
+	            }
+	            // max now equals global max within window tMax
+	        }
+	
+	        peaks.add(max);
+	        indices.add(peakLoc);
+	        max = 0;
+	
+	        if (peakLoc + delta + tMax >= a.size()) {
+	        	Result res = new Result(indices, peaks);
+	        	return res;
+	        }
+	
+	        i = peakLoc + delta;     // Minimal possible index for new peak
+	        endWindow = i + tMax;   // Maximum possible index for new peak
+	
+
+	    }
+	    Result res = new Result(indices, peaks); 
+	    
+	    return res;
+	}
+	
+	public static class Result {
+		public List<Integer> xValues;
+		public List<Double> yValues;
+		
+		Result(List<Integer> x, List<Double> y) {
+			this.xValues = x;
+			this.yValues = y;
+		}
+		
+	}
+
+    public static List<Double> Read()//throws IOException 
+    	{
+    		// 0 = sample, 1 = timestap, 2 = value
+        	List<Double> values = new ArrayList<Double>();
+        	
+	        try {
+	
+
+	            Scanner sc = new Scanner(new File("/home/danielle/AndroidStudioProjects/IN4254-SPS/assignment2/accelerometer_DANI.dat"));
+	            sc.nextLine();
+	            while (sc.hasNextLine())    {
+	            	String tmp = sc.nextLine();
+	            	String[] tmp2 = tmp.split("|//"); 	            	
+	                values.add(Double.parseDouble(tmp2[2]));
+	            }
+	        } catch (IOException e) {
+	            System.out.println("Data file not found, check if .dat is in the program directory");
+	        }           
+
+	        return values;
+    } 
+	
+	
+    
+    public static void main(String [] args)
+	{
+    	List<Double> data = Read();
+    	Result res = findPeaks(data);
+    	System.out.println(res.xValues);
+    	System.out.println(res.yValues);
+    	
+    }
+	
+}
