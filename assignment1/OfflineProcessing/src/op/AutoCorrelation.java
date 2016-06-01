@@ -59,7 +59,7 @@ public class AutoCorrelation {
 		}
 		
 		// Find the optimal autocorrelation
-		double opt = getOptimalAutocorrelation(f,g);
+		double opt = getOptimalAutocorrelation(f,g, fsd, gsd);
 		
 		// Get corresponding timewindow
 		int samplesBetween = (peak2 - peak1) // time between peaks
@@ -72,11 +72,11 @@ public class AutoCorrelation {
 	
 	int optimalI;
 	/* Shift g over f and try to find the optimal autocorrelation */
-	private double getOptimalAutocorrelation(double f[], double g[]) {
+	private double getOptimalAutocorrelation(double f[], double g[], double fsd, double gsd) {
 		double optimalCorrelation = Double.MIN_VALUE;
 		double val;
 		for (int i = 0; i < g.length * 2 - 1; i++) {
-			val = getAutocorrelation(f, g
+			val = getAutocorrelation(f, g, fsd, gsd
 					,-g.length + i + 1 < 0 ? 0 :-g.length + i + 1
 					, g.length - i - 1 < 0 ? 0 : g.length - i - 1);
 			if (val > optimalCorrelation) {
@@ -90,16 +90,16 @@ public class AutoCorrelation {
 	}
 	
 	/* Calculate autocorrelation with f and g, with gi and fi above eachother. Either gi or fi should alwayss be 0 */
-	private double getAutocorrelation(double f[], double g[], int fi, int gi) {
+	private double getAutocorrelation(double f[], double g[], double fsd, double gsd, int fi, int gi) {
 		double result = 0;
 		int overlap = fi == 0 ? g.length - gi : f.length - fi;
 		
 		for (int i = 0; i < overlap; i++) {
 			result += f[fi + i] * g[gi + i];
 		}
-		
+
 		// Divide by the standard deviations
-		result /= sd(f, mean(f)) * sd(g, mean(g));
+		result /= fsd * gsd;
 
 		// Normalize and return
 		return result / overlap;
