@@ -24,6 +24,8 @@ import java.util.TimerTask;
 
 public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
+    private final static int offsetDegreesBuildingMap =  -30;
+    private final static double offsetRadianBuildingMap = Math.toRadians(offsetDegreesBuildingMap);
 
     private CollisionMap collisionMap;
     private ParticleController particleController;
@@ -78,7 +80,7 @@ public class MapActivity extends Activity {
 
     public void doStep(View view) {
         // Get direction
-        double directionRadians = radianNorth;
+        double directionRadians = radianNorth + offsetRadianBuildingMap;
 
         // Move particles
         particleController.move(directionRadians);
