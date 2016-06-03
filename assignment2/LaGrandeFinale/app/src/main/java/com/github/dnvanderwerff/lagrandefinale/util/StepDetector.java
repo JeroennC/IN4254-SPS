@@ -24,6 +24,9 @@ public class StepDetector implements SensorEventListener {
     /* Sensor */
     private Sensor accelerometer;
 
+    /* Autocorrelation */
+    private AutoCorrelation2 autoCorrelation;
+
     /* Variables */
     private Handler stepHandler;
     private State currentState = State.STILL;
@@ -49,17 +52,18 @@ public class StepDetector implements SensorEventListener {
         endOfWindow = System.currentTimeMillis() + TimeWindow;
 
         stepHandler = handler;
+
+        autoCorrelation = new AutoCorrelation2();
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         // Get x y z values of the accelerator
         accelVals = lowPass(event.values.clone(), accelVals, ALPHA);
-        double x = (double) accelVals[0];
-        double y = (double) accelVals[1];
-        double z = (double) accelVals[2];
+        double magnitude = Math.sqrt(Math.pow(accelVals[0], 2) + Math.pow(accelVals[1], 2) + Math.pow(accelVals[2], 2));
 
-        accMagnitude.add(Math.sqrt(x*x + y*y + z*z));
+        accMagnitude.add(magnitude);
+        autoCorrelation.addMagnitude(magnitude);
 
         // Time window has elapsed
         if (System.currentTimeMillis() > endOfWindow) {
@@ -74,10 +78,11 @@ public class StepDetector implements SensorEventListener {
             while (accMagnitudeHistory.size() > samplesToKeep)
                 accMagnitudeHistory.removeFirst();
 
+            // TODO make this work correctly
             if (sd <= 0.2) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if (sd >= 0.9) {//((new AutoCorrelation(accMagnitude)).currentState.equals(AutoCorrelation.State.WALKING)) {
+            } else if (autoCorrelation.getCorrelation() > 0.7) {
                 // Change state to walking
                 currentState = State.WALKING;
             }
