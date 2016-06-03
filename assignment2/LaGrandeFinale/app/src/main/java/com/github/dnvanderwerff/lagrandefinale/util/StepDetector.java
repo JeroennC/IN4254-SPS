@@ -32,7 +32,6 @@ public class StepDetector implements SensorEventListener {
     private State currentState = State.STILL;
     private float[] accelVals;
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
-    LinkedList<Double> accMagnitudeHistory; // List of acc magnitudes with up to three? time windows
     long TimeWindow = 700;                              // Time window in ms, can be adapted
     long endOfWindow; // Set current endOfWindow
 
@@ -47,7 +46,6 @@ public class StepDetector implements SensorEventListener {
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         accMagnitude = new ArrayList<>();
-        accMagnitudeHistory = new LinkedList<>();
 
         endOfWindow = System.currentTimeMillis() + TimeWindow;
 
@@ -69,14 +67,6 @@ public class StepDetector implements SensorEventListener {
         if (System.currentTimeMillis() > endOfWindow) {
             // Calculate standard deviation
             double sd = sd(accMagnitude);
-
-            // Add new values to history
-            accMagnitudeHistory.addAll(accMagnitude);
-
-            // Remove old history values
-            int samplesToKeep = (int)(3*TimeWindow) / 20; // 20 ms per sample
-            while (accMagnitudeHistory.size() > samplesToKeep)
-                accMagnitudeHistory.removeFirst();
 
             // TODO make this work correctly
             if (sd <= 0.2) {
