@@ -11,6 +11,8 @@ import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static double length = 1.80; // Initialize length of user throughout app
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,6 +43,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void startAccelMeas(View view) {
         Intent intent = new Intent(this, AccelerationMeasure.class);
+        startActivity(intent);
+    }
+
+    public void startLength(View view) {
+        Intent intent = new Intent(this, LengthActivity.class);
         startActivity(intent);
     }
 }

@@ -28,8 +28,12 @@
             android:name=".MapActivity"
             android:screenOrientation="landscape"
             android:theme="@style/MapTheme" />
-        <activity android:name=".AccelerationMeasure"
-            android:theme="@style/AppTheme"></activity>
+        <activity
+            android:name=".AccelerationMeasure"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".LengthActivity"
+            android:theme="@style/AppTheme" />
     </application>
 
 </manifest>
