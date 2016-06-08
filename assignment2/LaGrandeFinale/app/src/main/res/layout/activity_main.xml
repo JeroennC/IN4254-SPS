@@ -49,4 +49,12 @@
         android:onClick="startAccelMeas"
         android:layout_below="@id/FLOOR9"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set length"
+        android:id="@+id/length"
+        android:onClick="startLength"
+        android:layout_below="@id/acceleration"/>
+
 </RelativeLayout>
