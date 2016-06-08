@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.TextView;
@@ -58,7 +59,7 @@ public class MapActivity extends Activity {
 
         collisionMap = new CollisionMap(mapType);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(1000);
+        particleController.initialize(4000);
         // Show surface
         surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 
@@ -82,8 +83,10 @@ public class MapActivity extends Activity {
         // Get direction
         double directionRadians = radianNorth + offsetRadianBuildingMap;
 
+        stepDetector.pauseSensor();
         // Move particles
         particleController.move(directionRadians);
+        stepDetector.resumeSensor();
 
         // Draw
         mapView.update();

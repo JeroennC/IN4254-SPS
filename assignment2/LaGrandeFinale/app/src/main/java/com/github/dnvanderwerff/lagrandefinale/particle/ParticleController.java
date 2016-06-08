@@ -1,5 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.particle;
 
+import android.util.Log;
+
 import com.github.dnvanderwerff.lagrandefinale.util.NormalDistribution;
 
 import java.util.ArrayList;
@@ -66,6 +68,7 @@ public class ParticleController {
 
     /* Moves all particles */
     public void move(double directionRadians) {
+        long begin = System.currentTimeMillis();
         alives.clear();
         deads.clear();
         double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
@@ -106,7 +109,7 @@ public class ParticleController {
                     maxY = p.y;
             }
         }
-
+        long moved = System.currentTimeMillis();
         // Reposition dead particles
         // But not if there are none alive
         if (alives.size() > 0) {
@@ -119,7 +122,8 @@ public class ParticleController {
             // At this point, the system needs to recover, as the cluster of particles is in the wrong location.. what is this called again?
 
         }
-
+        long resampled = System.currentTimeMillis();
+        Log.d("ParticleTime", begin + "-" + moved + "-" + resampled);
         // Calculate particle area
         surface = (maxX - minX) * (maxY - minY);
 

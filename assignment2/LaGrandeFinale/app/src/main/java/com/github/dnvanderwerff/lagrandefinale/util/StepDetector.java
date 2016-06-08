@@ -7,6 +7,7 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,8 +33,10 @@ public class StepDetector implements SensorEventListener {
     private State currentState = State.STILL;
     private float[] accelVals;
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
+    List<Double> valueBuffer; // Buffer of magnitudes while paused
     long TimeWindow = 700;                              // Time window in ms, can be adapted
     long endOfWindow; // Set current endOfWindow
+    private boolean paused = false;
 
     public State getState() {
         return currentState;
@@ -54,12 +57,19 @@ public class StepDetector implements SensorEventListener {
         autoCorrelation = new AutoCorrelation2();
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        // Get x y z values of the accelerator
-        accelVals = lowPass(event.values.clone(), accelVals, ALPHA);
-        double magnitude = Math.sqrt(Math.pow(accelVals[0], 2) + Math.pow(accelVals[1], 2) + Math.pow(accelVals[2], 2));
+    public void pauseSensor() {
+        paused = true;
+        valueBuffer = new LinkedList<>();
+    }
 
+    public void resumeSensor() {
+        paused = false;
+        Iterator<Double> it = valueBuffer.iterator();
+        while (it.hasNext())
+            handleValue(it.next());
+    }
+
+    private void handleValue(double magnitude) {
         accMagnitude.add(magnitude);
         autoCorrelation.addMagnitude(magnitude);
 
@@ -84,6 +94,18 @@ public class StepDetector implements SensorEventListener {
             accMagnitude.clear();
             endOfWindow = System.currentTimeMillis() + TimeWindow;
         }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // Get x y z values of the accelerator
+        accelVals = lowPass(event.values.clone(), accelVals, ALPHA);
+        double magnitude = Math.sqrt(Math.pow(accelVals[0], 2) + Math.pow(accelVals[1], 2) + Math.pow(accelVals[2], 2));
+
+        if (!paused)
+            handleValue(magnitude);
+        else
+            valueBuffer.add(magnitude);
     }
 
     @Override
