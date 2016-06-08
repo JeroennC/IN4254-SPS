@@ -17,6 +17,7 @@ import java.util.List;
 public class StepDetector implements SensorEventListener {
     private static final float ALPHA = 0.8f;
     public static final int STEP_HANDLER_ID = 3333;
+    public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
 
     public enum State {
         STILL,WALKING
@@ -41,6 +42,9 @@ public class StepDetector implements SensorEventListener {
     public State getState() {
         return currentState;
     }
+
+    public double getCorrelation() { return autoCorrelation.getCorrelation(); }
+    public int getOptimalTimeWindow() { return autoCorrelation.getOptimalTimeWindow(); }
 
     public StepDetector(SensorManager sensorManager, Handler handler) {
 
@@ -79,13 +83,15 @@ public class StepDetector implements SensorEventListener {
             double sd = sd(accMagnitude);
 
             // TODO make this work correctly
-            if (sd <= 0.2) {
+            if (sd <= STANDARD_DEV_WALKING_THRESHOLD) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if (autoCorrelation.getCorrelation() > 0.7) {
+            } else if (currentState == State.STILL && autoCorrelation.getCorrelation() > 0.7) {
                 // Change state to walking
                 currentState = State.WALKING;
             }
+
+
 
             // Do step
             if (stepHandler != null && currentState == State.WALKING)

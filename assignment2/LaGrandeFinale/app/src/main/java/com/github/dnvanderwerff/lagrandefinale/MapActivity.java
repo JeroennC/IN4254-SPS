@@ -114,8 +114,9 @@ public class MapActivity extends Activity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    degreeView.setText(degreeNorth + "d");
+                    //degreeView.setText(degreeNorth + "d");
                     compass.update(radianNorth, radianMe);
+                    degreeView.setText(String.format("c: %.2f\nt: %d", stepDetector.getCorrelation(), stepDetector.getOptimalTimeWindow()));
                     surfaceView.setText("I am " + stepDetector.getState().toString());
                     break;
                 case StepDetector.STEP_HANDLER_ID:
