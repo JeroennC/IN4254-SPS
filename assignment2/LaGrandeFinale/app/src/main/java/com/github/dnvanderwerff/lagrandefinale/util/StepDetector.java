@@ -18,6 +18,7 @@ public class StepDetector implements SensorEventListener {
     private static final float ALPHA = 0.8f;
     public static final int STEP_HANDLER_ID = 3333;
     public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
+    public static final double CORRELATION_WALKING_THRESHOLD = 0.7;
 
     public enum State {
         STILL,WALKING
@@ -86,7 +87,7 @@ public class StepDetector implements SensorEventListener {
             if (sd <= STANDARD_DEV_WALKING_THRESHOLD) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if (currentState == State.STILL && autoCorrelation.getCorrelation() > 0.7) {
+            } else if (currentState == State.STILL && autoCorrelation.getCorrelation() > CORRELATION_WALKING_THRESHOLD) {
                 // Change state to walking
                 currentState = State.WALKING;
             }

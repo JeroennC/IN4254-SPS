@@ -24,6 +24,7 @@ public class AutoCorrelation2 {
     LinkedList<Double> magnitudeHistory;                        // List of acc magnitude values
     List<Integer> indices;                                      // Indices of peaks within smoothMagnitudeHistory
 
+    private int optimalSamplesBetween;
     private int optimalTimeWindow;                  // in ms
     private int certaintySampleWindow;              // in samples
     private int listSize = 0;
@@ -37,6 +38,7 @@ public class AutoCorrelation2 {
 
     public AutoCorrelation2() {
         optimalTimeWindow = 600;
+        optimalSamplesBetween = optimalTimeWindow / msPerSample;
         certaintySampleWindow = 5;
         setListSize();
 
@@ -180,39 +182,51 @@ public class AutoCorrelation2 {
         // Find the optimal autocorrelation
         double new_correlation = getOptimalAutocorrelation(f, g, fsd, gsd, samplesBetweenPeaks);
 
-        if (new_correlation == Double.MIN_VALUE)
+        if (new_correlation == 0)
             return;
 
         correlation = new_correlation;
 
-        // Get corresponding timewindow
-        int samplesBetween = samplesBetweenPeaks - (g.length - optimalI - 1);
-
-        optimalTimeWindow = samplesBetween * 20; // Samples times 20 ms
-        Log.d("OPTIMALTIMEWINDOW", "" + optimalTimeWindow);
-        setListSize();
+        // Get corresponding timewindow if correlation is high enough
+        if (correlation >= StepDetector.CORRELATION_WALKING_THRESHOLD) {
+            optimalSamplesBetween = samplesBetweenPeaks - windowSize + optimalI + 1;
+            optimalTimeWindow = optimalSamplesBetween * 20; // Samples times 20 ms
+            Log.d("OPTIMALTIMEWINDOW", "" + optimalTimeWindow);
+            setListSize();
+        }
     }
 
     int optimalI = -1;
     /* Shift g over f and try to find the optimal autocorrelation */
     private double getOptimalAutocorrelation(double f[], double g[], double fsd, double gsd, int samplesBetweenPeaks) {
-        double optimalCorrelation = Double.MIN_VALUE;
+        double optimalCorrelation = 0;
         double val;
-        // Calculate start and end indices
-        int startIndex = optimalI < certaintySampleWindow ? 0 : optimalI - certaintySampleWindow;
-        if (samplesBetweenPeaks - (g.length - startIndex - 1) < minSampleWindow)
-            startIndex = -1 * (samplesBetweenPeaks - minSampleWindow - (g.length - 1)); // Some math to calculate the startIndex that satisfies minSampleWindow
-        int endIndex = optimalI == -1 || optimalI + certaintySampleWindow > g.length * 2 - 1 ? g.length * 2 - 1 : optimalI + certaintySampleWindow;
-        if (samplesBetweenPeaks - (g.length - endIndex - 1) > maxSampleWindow)
-            endIndex = -1 * (samplesBetweenPeaks - maxSampleWindow - (g.length - 1));
 
-        Log.d("HMM", "Between: " + samplesBetweenPeaks + ", glen: " + g.length + ", Start: " + startIndex + ", end: " + endIndex);
+        // Calculate i for optimalSamplesBetween
+        int optI = optimalSamplesBetween - samplesBetweenPeaks + windowSize - 1;
+        // Start and end of certainty window
+        int startIndex, endIndex;
+        if (optimalI == -1) {
+            // First time, take full bounds
+            startIndex = 0;
+            endIndex = windowSize * 2 - 1;
+        } else {
+            startIndex = optI < certaintySampleWindow ? 0 : optI - certaintySampleWindow;
+            endIndex = optI + certaintySampleWindow > windowSize * 2 - 1 ? windowSize * 2 - 1 : optI + certaintySampleWindow;
+        }
 
-        // TODO check if this for loop can be decreased if the optimal time window is known
+        // Bound the indices by the minSampleWindow, maxSampleWindow
+        int minI = minSampleWindow - samplesBetweenPeaks + windowSize - 1;
+        int maxI = maxSampleWindow - samplesBetweenPeaks + windowSize - 1;
+        startIndex = startIndex < minI ? minI : startIndex;
+        endIndex   = endIndex   > maxI ? maxI : endIndex;
+
+        Log.d("HMM", "Between: " + samplesBetweenPeaks + ", len: " + windowSize + ", Start: " + startIndex + ", end: " + endIndex);
+
         for (int i = startIndex; i < endIndex; i++) {
             val = getAutocorrelation(f, g, fsd, gsd
-                    ,-g.length + i + 1 < 0 ? 0 :-g.length + i + 1
-                    , g.length - i - 1 < 0 ? 0 : g.length - i - 1);
+                    ,-windowSize + i + 1 < 0 ? 0 :-windowSize + i + 1   // fi
+                    , windowSize - i - 1 < 0 ? 0 : windowSize - i - 1); // gi
             if (val > optimalCorrelation) {
                 optimalCorrelation = val;
                 optimalI = i;
