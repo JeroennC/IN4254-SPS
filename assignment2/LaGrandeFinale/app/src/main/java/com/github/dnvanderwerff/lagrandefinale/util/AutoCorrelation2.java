@@ -12,20 +12,20 @@ import java.util.ListIterator;
  * Created by Jeroen on 03/06/2016.
  */
 public class AutoCorrelation2 {
-    private static final int msPerSample = 20;
-    private static final int smoothIntervalTail = 2;
-    private static final int windowSize = 30;
+    private static final int msPerSample = 20;                  // Amount of ms elapsed per sample
+    private static final int smoothIntervalTail = 2;            // Parameter used for sizing magnitudeHistory
+    private static final int windowSize = 30;                   // Nr of sample per window (window in which we search for a peak)
     private static final int minTimeWindow = 400, maxTimeWindow = 1000;
     private static final int minSampleWindow = minTimeWindow / msPerSample, maxSampleWindow = maxTimeWindow / msPerSample;
     // Peak offsets used
-    private static final int offsetR = 15, offsetL = 15;
+    private static final int offsetR = 15, offsetL = 15;        // Nr of samples from peak center
     private static final int minInterpeakSize = offsetR + offsetL;
-    LinkedList<Double> smoothMagnitudeHistory;
-    LinkedList<Double> magnitudeHistory;
-    List<Integer> indices; // Indices of peaks within smoothMagnitudeHistory
+    LinkedList<Double> smoothMagnitudeHistory;                  // List of smoothed acc magnitude values
+    LinkedList<Double> magnitudeHistory;                        // List of acc magnitude values
+    List<Integer> indices;                                      // Indices of peaks within smoothMagnitudeHistory
 
-    private int optimalTimeWindow; // in ms
-    private int certaintySampleWindow; // in samples
+    private int optimalTimeWindow;                  // in ms
+    private int certaintySampleWindow;              // in samples
     private int listSize = 0;
     private double correlation;
 
@@ -141,7 +141,6 @@ public class AutoCorrelation2 {
         double f[] = new double[windowSize];
         double g[] = new double[windowSize];
 
-        // TODO  ik geloof dat start en eind indices hier niet in alle situaties evenver uit elkaar liggen voor f en g
         // Get starting and ending indices
         int fstart = peak1 - offsetL < 0 ? 0 : peak1 - offsetL;
         int fend = peak1 + offsetR > smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() : peak1 + offsetR;
@@ -187,8 +186,7 @@ public class AutoCorrelation2 {
         correlation = new_correlation;
 
         // Get corresponding timewindow
-        int samplesBetween = samplesBetweenPeaks
-                - (g.length - optimalI - 1);
+        int samplesBetween = samplesBetweenPeaks - (g.length - optimalI - 1);
 
         optimalTimeWindow = samplesBetween * 20; // Samples times 20 ms
         Log.d("OPTIMALTIMEWINDOW", "" + optimalTimeWindow);
@@ -273,6 +271,7 @@ public class AutoCorrelation2 {
         return Math.sqrt( sum / a.length );
     }
 
+    /* Set nr of samples needed to calculate autocorrelation */
     private void setListSize() {
         listSize = 2 * optimalTimeWindow / msPerSample;
         if (listSize < 3)

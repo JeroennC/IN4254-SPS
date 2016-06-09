@@ -2,6 +2,7 @@ package com.github.dnvanderwerff.lagrandefinale.particle;
 
 import android.util.Log;
 
+import com.github.dnvanderwerff.lagrandefinale.MainActivity;
 import com.github.dnvanderwerff.lagrandefinale.util.NormalDistribution;
 
 import java.util.ArrayList;
@@ -28,7 +29,8 @@ public class ParticleController {
     public ParticleController(CollisionMap map) {
         this.map = map;
         ndDirection = new NormalDistribution(0, Math.toRadians(13));
-        ndStepSize = new NormalDistribution(0.7, 0.15);
+        //ndStepSize = new NormalDistribution(0.7, 0.15);
+        ndStepSize = new NormalDistribution(MainActivity.length*0.41, 0.05);
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
