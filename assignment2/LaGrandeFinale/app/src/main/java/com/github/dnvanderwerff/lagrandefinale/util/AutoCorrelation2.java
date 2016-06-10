@@ -371,19 +371,14 @@ public class AutoCorrelation2 {
             sumg += Math.pow((g[gi+i] - meang),2);
         }
 
-        //fsd = Math.sqrt(sumf /overlap);
-        //gsd = Math.sqrt(sumg /overlap);
-        fsd = sumf;
-        gsd = sumg;
+        fsd = sumf /overlap;
+        gsd = sumg /overlap;
 
         // Divide by the standard deviations
-        // result /= Math.sqrt(fsd * gsd);
         result /= Math.sqrt(fsd * gsd);
 
-
         // Normalize and return
-        //return result / overlap;
-        return result;
+        return result / overlap;
     }
 
     private double getAverage(LinkedList<Double> list) {
