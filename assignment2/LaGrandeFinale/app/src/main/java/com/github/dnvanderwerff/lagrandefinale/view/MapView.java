@@ -133,7 +133,7 @@ public class MapView extends View {
             if (!particool.valid) continue;
             canvas.drawCircle(
                     (float)particool.x * meterToCanvasW,
-                    (float)particool.y * meterToCanvasH, 5, paint);
+                    (float)particool.y * meterToCanvasH, 2, paint);
         }
     }
 

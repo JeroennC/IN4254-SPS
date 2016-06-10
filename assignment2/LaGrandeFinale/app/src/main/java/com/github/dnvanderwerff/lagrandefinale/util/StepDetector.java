@@ -53,13 +53,13 @@ public class StepDetector implements SensorEventListener {
         if (accelerometer == null)
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        accMagnitude = new ArrayList<>();
+        //accMagnitude = new ArrayList<>();
 
-        endOfWindow = System.currentTimeMillis() + TimeWindow;
+        //endOfWindow = System.currentTimeMillis() + TimeWindow;
 
         stepHandler = handler;
 
-        autoCorrelation = new AutoCorrelation2();
+        autoCorrelation = new AutoCorrelation2(handler);
     }
 
     public void pauseSensor() {
@@ -75,9 +75,9 @@ public class StepDetector implements SensorEventListener {
     }
 
     private void handleValue(double magnitude) {
-        accMagnitude.add(magnitude);
+        //accMagnitude.add(magnitude);
         autoCorrelation.addMagnitude(magnitude);
-
+/*
         // Time window has elapsed
         if (System.currentTimeMillis() > endOfWindow) {
             // Calculate standard deviation
@@ -100,7 +100,7 @@ public class StepDetector implements SensorEventListener {
 
             accMagnitude.clear();
             endOfWindow = System.currentTimeMillis() + TimeWindow;
-        }
+        }*/
     }
 
     @Override
