@@ -19,7 +19,8 @@ public class AutoCorrelation2 {
     private static final int minSampleWindow = minTimeWindow / msPerSample, maxSampleWindow = maxTimeWindow / msPerSample;
     // Peak offsets used
     private static final int offsetR = 15, offsetL = 15;        // Nr of samples from peak center
-    private static final int minInterpeakSize = offsetR + offsetL;
+    private static final int peakWindow = offsetR + offsetL;    // Nr of samples used around one peak
+    private static final int minInterpeakSize = minSampleWindow;
     LinkedList<Double> smoothMagnitudeHistory;                  // List of smoothed acc magnitude values
     LinkedList<Double> magnitudeHistory;                        // List of acc magnitude values
     List<Integer> indices;                                      // Indices of peaks within smoothMagnitudeHistory
@@ -126,7 +127,7 @@ public class AutoCorrelation2 {
                 return indices;
             }
 
-            i = peakLoc + delta;     // Minimal possible index for new peak
+            i = peakLoc + delta;                                  // Minimal possible index for new peak
             endWindow = Math.min(i + windowSize, a.size() - 1);   // Maximum possible index for new peak
 
         }
@@ -140,8 +141,8 @@ public class AutoCorrelation2 {
     private void calculateAutocorrelation(int peak1, int peak2) {
         int samplesBetweenPeaks = peak2 - peak1;
         // Separate out f and g
-        double f[] = new double[windowSize];
-        double g[] = new double[windowSize];
+        double f[] = new double[peakWindow];
+        double g[] = new double[peakWindow];
 
         // Get starting and ending indices
         int fstart = peak1 - offsetL < 0 ? 0 : peak1 - offsetL;
@@ -189,7 +190,7 @@ public class AutoCorrelation2 {
 
         // Get corresponding timewindow if correlation is high enough
         if (correlation >= StepDetector.CORRELATION_WALKING_THRESHOLD) {
-            optimalSamplesBetween = samplesBetweenPeaks - windowSize + optimalI + 1;
+            optimalSamplesBetween = samplesBetweenPeaks - peakWindow + optimalI + 1;
             optimalTimeWindow = optimalSamplesBetween * 20; // Samples times 20 ms
             Log.d("OPTIMALTIMEWINDOW", "" + optimalTimeWindow);
             setListSize();
@@ -203,7 +204,7 @@ public class AutoCorrelation2 {
         double val;
 
         // Calculate i for optimalSamplesBetween
-        int optI = optimalSamplesBetween - samplesBetweenPeaks + windowSize - 1;
+        int optI = optimalSamplesBetween - samplesBetweenPeaks + peakWindow - 1;
         // Start and end of certainty window
         int startIndex, endIndex;
         if (optimalI == -1) {
@@ -212,21 +213,21 @@ public class AutoCorrelation2 {
             endIndex = windowSize * 2 - 1;
         } else {
             startIndex = optI < certaintySampleWindow ? 0 : optI - certaintySampleWindow;
-            endIndex = optI + certaintySampleWindow > windowSize * 2 - 1 ? windowSize * 2 - 1 : optI + certaintySampleWindow;
+            endIndex = optI + certaintySampleWindow > peakWindow * 2 - 1 ? peakWindow * 2 - 1 : optI + certaintySampleWindow;
         }
 
         // Bound the indices by the minSampleWindow, maxSampleWindow
-        int minI = minSampleWindow - samplesBetweenPeaks + windowSize - 1;
-        int maxI = maxSampleWindow - samplesBetweenPeaks + windowSize - 1;
+        int minI = minSampleWindow - samplesBetweenPeaks + peakWindow - 1;
+        int maxI = maxSampleWindow - samplesBetweenPeaks + peakWindow - 1;
         startIndex = startIndex < minI ? minI : startIndex;
         endIndex   = endIndex   > maxI ? maxI : endIndex;
 
-        Log.d("HMM", "Between: " + samplesBetweenPeaks + ", len: " + windowSize + ", Start: " + startIndex + ", end: " + endIndex);
+        Log.d("HMM", "Between: " + samplesBetweenPeaks + ", len: " + peakWindow + ", Start: " + startIndex + ", end: " + endIndex);
 
         for (int i = startIndex; i < endIndex; i++) {
             val = getAutocorrelation(f, g, fsd, gsd
-                    ,-windowSize + i + 1 < 0 ? 0 :-windowSize + i + 1   // fi
-                    , windowSize - i - 1 < 0 ? 0 : windowSize - i - 1); // gi
+                    ,-peakWindow + i + 1 < 0 ? 0 :-peakWindow + i + 1   // fi
+                    , peakWindow - i - 1 < 0 ? 0 : peakWindow - i - 1); // gi
             if (val > optimalCorrelation) {
                 optimalCorrelation = val;
                 optimalI = i;

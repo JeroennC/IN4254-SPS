@@ -36,7 +36,7 @@ public class StepDetector implements SensorEventListener {
     private float[] accelVals;
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
     List<Double> valueBuffer; // Buffer of magnitudes while paused
-    long TimeWindow = 700;                              // Time window in ms, can be adapted
+    long TimeWindow = 600;                              // Time window in ms, can be adapted
     long endOfWindow; // Set current endOfWindow
     private boolean paused = false;
 
@@ -83,7 +83,6 @@ public class StepDetector implements SensorEventListener {
             // Calculate standard deviation
             double sd = sd(accMagnitude);
 
-            // TODO make this work correctly
             if (sd <= STANDARD_DEV_WALKING_THRESHOLD) {
                 // Change state to standing still
                 currentState = State.STILL;
@@ -92,7 +91,8 @@ public class StepDetector implements SensorEventListener {
                 currentState = State.WALKING;
             }
 
-
+            // Set the time window
+            TimeWindow = autoCorrelation.getOptimalTimeWindow();
 
             // Do step
             if (stepHandler != null && currentState == State.WALKING)
