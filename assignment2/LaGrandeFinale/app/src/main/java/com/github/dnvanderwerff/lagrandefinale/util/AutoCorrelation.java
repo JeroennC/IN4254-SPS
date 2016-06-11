@@ -1,5 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.util;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,11 +17,12 @@ import java.util.List;
  */
 public class AutoCorrelation {
 
-    public static final int tMin = 35, tMax = 80; // TODO pas deze waarden aan naar iets logisch
-
+    public static final int tMin = 20, tMax = 50; // TODO pas deze waarden aan naar iets logisch
+    public static final double WALKING_THRESHOLD = 0.7;
     private List<Double> accData;   // Accelerator signal
     public State currentState;      // Activity state of user
     public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
+    public double autocorr;
 
     public enum State {
         STILL,WALKING
@@ -42,47 +45,57 @@ public class AutoCorrelation {
     /* Constructor */
     public AutoCorrelation(List<Double> accData) {
         this.accData = accData;
-        this.optPeriod = 0;
+        this.optPeriod = 30;
         this.currentState = State.STILL;
+        this.autocorr = 0;
 
         // Set state of user for given accData window
         setState();
     }
 
+    public void addData(double data) {
+        this.accData.add(data);
+        if (accData.size() > 2 * tMax + 2) {
+            this.accData.remove(0);
+        }
+    }
+
+    public double getAutoCorrelation() {
+        setState();
+        return this.autocorr;
+    }
+
     /* Set state of user for sample m by checking value of psi(m) */
     public void setState() {
 
-        int m = this.accData.size();
-
-        int walkingCount = 0;
-        int optPeriod = 0;
-
-        for (int i = 0; i < (m - 2*tMax); i++) {
-            Result res = maxNormAutoCorrelation(i, tMin, tMax);
-
-            if(res.max > 0.7) { // TODO voorlopig gelijk aan 0.7 uit paper, check of dit daadwerkelijk beste waarde is
-                walkingCount++;
-                optPeriod += res.period;
+        // Check if enough data has been obtained
+        if (accData.size() > 2 * tMax + 1) {
+            Result res = maxNormAutoCorrelation(0, tMin, tMax);
+            this.autocorr = res.max;
+            if (res.max > WALKING_THRESHOLD) {
+                this.currentState = State.WALKING;
+                this.optPeriod = res.period;
+            } else {
+                this.currentState = State.STILL;
             }
-        }
+            Log.d("autocorr_res", String.format("optPeriod " + this.optPeriod + ", AutoCorr %.2f", res.max));
 
-        // If majority of tested samples indicates WALKING, adjust state and period of user
-        if (walkingCount > (m - 2*tMax)/2) {
-            this.currentState = State.WALKING;
-            this.optPeriod = optPeriod / (m - 2*tMax);
         }
     }
 
     /* Compute normalized auto-correlation X(m,tau) of accData for sample m and lag tau */
     public double X(int m, int tau) {
         double X = 0;
+        double mu1 = mean(m, tau);
+        double mu2 = mean(m+tau, tau);
+
 
         for (int k = 0; k < tau; k++) {
-            X += (accData.get(m+k) - mean(m, tau)) * (accData.get(m+k+tau) - mean(m+tau, tau));
+            X += (accData.get(m+k) - mu1) * (accData.get(m+k+tau) - mu2);
         }
 
-        X /= tau * sd(m, tau) * sd(m + tau, tau);
-
+        X /= (tau * sd(m, tau) * sd(m + tau, tau));
+        Log.d("X",String.format("%.2f",X));
         return X;
     }
 
@@ -100,46 +113,40 @@ public class AutoCorrelation {
                 optPeriod = t;
             }
         }
-
+        Log.d("maxNorm", String.format("Max %.2f optPeriod " + optPeriod,max));
         return new Result(optPeriod, max);
     }
 
 
-    /* Compute standard deviation of samples k to l-1 of a list */
+    /* Compute standard deviation of samples k to k + l-1 of a list */
     private double sd (int k, int l){
         double sum = 0;
         double mean = mean(k, l);
         List<Double> a = this.accData;
 
         // Compute stdev
-        for (int i = k; i < l; i++) {
+        for (int i = k; i < (k + l); i++) {
             sum += Math.pow((a.get(i) - mean), 2);
         }
 
-        return Math.sqrt( sum / (l - k) );
+        return Math.sqrt(sum / (l - 1)); // l- 1 instead of l since it is a sample, not a population
     }
 
-    /* Compute mean of of samples k to l-1 of a list */
+    /* Compute mean of of samples k to k + l-1 of a list */
     private double mean (int k, int l) {
         double mean = 0;
         List<Double> a = this.accData;
 
-        for (int i = k; i < l; i++) {
+        for (int i = k; i < (k + l); i++) {
             mean += a.get(i);
         }
-        mean /= (l - k);
+        mean /= (l - 1); // l - 1 instead of l since it is a sample, not a population
 
         return mean;
     }
 
-    // TODO  sample m uit paper, is dat array[m] (dus basically element m+1) of gewoon echt het m'de element? Voor nu is array[m] gebruikt,
-    // maar dit zou er dus 1 sample naast kunnen zitten
 
-
-
-
-
-
+    /*
     private List<Double> findPeaks(List<Double> a) {
 
         double max = 0;
@@ -176,7 +183,7 @@ public class AutoCorrelation {
 
     }
 
-
+    */
 
 
 

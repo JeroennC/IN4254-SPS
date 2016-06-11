@@ -84,13 +84,14 @@ public class AutoCorrelation2 {
         if (newPeak != -1) {
 
             // Check if peaks are not too far apart and lastPeak not too big
-            if (newPeak - lastPeak <= maxSampleWindow && lastPeak >= offsetL) {
+            if (newPeak - lastPeak <= maxSampleWindow && newPeak - lastPeak >= offsetL) {
                 // Two peaks have been found close to each other, compute their autocorrelation
                 if (calculateAutocorrelation(lastPeak, newPeak)
                         && stepHandler != null) {
                     stepHandler.obtainMessage(StepDetector.STEP_HANDLER_ID).sendToTarget();
-                    Log.d("autocorr",counter + "," + String.format("%.2f", correlation));
+                    Log.d("autocorr",counter + "," + String.format("lopend %.2f", correlation));
                 }
+                Log.d("autocorr",counter + "," + String.format("%.2f", correlation));
             }
 
             // Separate out f and g
@@ -148,7 +149,7 @@ public class AutoCorrelation2 {
         // TODO  threshold? -> adapt max below
 
         int i = 1;
-        double max  = 2.0;
+        double max  = 0.0;
         int peakLoc = -1;
         Iterator<Double> it = smoothMagnitudes.listIterator(startIndex-1);
         double previous = it.next();
@@ -279,11 +280,13 @@ public class AutoCorrelation2 {
         }
 
         // Turn f and g into f' and g' by subtracting the mean
-        // NOTE: f and g are equal length
-        for (int i = 0; i < f.length; i++) {
-            f[i] = f[i] - fmean;
-            g[i] = g[i] - gmean;
-        }
+        //for (int i = 0; i < f.length; i++) {
+        //    f[i] = f[i] - fmean;
+        //}
+        //for (int i = 0; i < g.length; i++) {
+        //    g[i] = g[i] - gmean;
+        //}
+
 
         // Find the optimal autocorrelation
         double new_correlation = getOptimalAutocorrelation(f, g, fsd, gsd, samplesBetweenPeaks);
@@ -301,8 +304,10 @@ public class AutoCorrelation2 {
             setListSize();
             return true;
         }
+        // time window weer terugzetten als lang niet gevonden wordt?
 
-        return false;
+        // even voor het checken TODO maak dit weer false
+        return true;
     }
 
     int optimalI = -1;
@@ -331,18 +336,16 @@ public class AutoCorrelation2 {
         endIndex   = endIndex   > maxI ? maxI : endIndex;
 
 
-        double corrSum = 0;
         for (int i = startIndex; i < endIndex; i++) {
             val = getAutocorrelation(f, g, fsd, gsd
                     ,-peakWindow + i + 1 < 0 ? 0 :-peakWindow + i + 1   // fi
                     , peakWindow - i - 1 < 0 ? 0 : peakWindow - i - 1); // gi
-            corrSum += Math.abs(val);
             if (val > optimalCorrelation) {
                 optimalCorrelation = val;
                 optimalI = i;
             }
         }
-        Log.d("autocorr functie", counter + "," + String.format(".2f", optimalCorrelation));
+        Log.d("autocorr functie", counter + "," + String.format("%.2f", optimalCorrelation));
         return optimalCorrelation;
     }
 
@@ -359,26 +362,31 @@ public class AutoCorrelation2 {
         // Compute stdev
 
         for (int i = 0; i < overlap; i++) {
-            result += f[fi + i] * g[gi + i];
             meanf += f[fi+i];
             meang += g[gi+i];
         }
         meanf /= overlap;
         meang /= overlap;
 
-        for (int i = 0; i < overlap; i++) {
-            sumf += Math.pow((f[fi+i] - meanf),2);
-            sumg += Math.pow((g[gi+i] - meang),2);
+        for (int i =0; i < overlap; i++) {
+            f[fi+i] -= meanf;
+            sumf += Math.pow(f[fi+i],2);
+            g[gi+i] -= meang;
+            sumg += Math.pow(g[gi+i],2);
+            result += f[fi + i] * g[gi + i];
         }
 
+        result /= overlap; // dit zou (biased) expectation value zijn van (Xf - muf)(Xg - mug) als het goed is. Nu nog delen door de varianties.
+
+        // standard afwijkingen:
         fsd = sumf /overlap;
         gsd = sumg /overlap;
 
         // Divide by the standard deviations
-        result /= Math.sqrt(fsd * gsd);
+        result /= fsd * gsd;
 
         // Normalize and return
-        return result / overlap;
+        return result;
     }
 
     private double getAverage(LinkedList<Double> list) {

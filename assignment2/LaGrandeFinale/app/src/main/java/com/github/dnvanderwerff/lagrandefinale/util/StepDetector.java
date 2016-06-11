@@ -5,6 +5,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ public class StepDetector implements SensorEventListener {
     public static final int STEP_HANDLER_ID = 3333;
     public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
     public static final double CORRELATION_WALKING_THRESHOLD = 0.7;
+    public static final int tMax = 50;
 
     public enum State {
         STILL,WALKING
@@ -28,7 +30,8 @@ public class StepDetector implements SensorEventListener {
     private Sensor accelerometer;
 
     /* Autocorrelation */
-    private AutoCorrelation2 autoCorrelation;
+    //private AutoCorrelation2 autoCorrelation;
+    private AutoCorrelation corr;
 
     /* Variables */
     private Handler stepHandler;
@@ -44,8 +47,17 @@ public class StepDetector implements SensorEventListener {
         return currentState;
     }
 
-    public double getCorrelation() { return autoCorrelation.getCorrelation(); }
-    public int getOptimalTimeWindow() { return autoCorrelation.getOptimalTimeWindow(); }
+    //public double getCorrelation() { return autoCorrelation.getCorrelation(); }
+    //public int getOptimalTimeWindow() { return autoCorrelation.getOptimalTimeWindow(); }
+    public double getCorrelation() {
+
+        if (currentState.equals(State.STILL)) {
+            return 0.0;
+        }
+        return corr.getAutoCorrelation();
+    }
+
+    public int getOptimalTimeWindow() { return corr.optPeriod; }
 
     public StepDetector(SensorManager sensorManager, Handler handler) {
 
@@ -53,13 +65,15 @@ public class StepDetector implements SensorEventListener {
         if (accelerometer == null)
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        //accMagnitude = new ArrayList<>();
+        accMagnitude = new ArrayList<>();
 
-        //endOfWindow = System.currentTimeMillis() + TimeWindow;
+        endOfWindow = System.currentTimeMillis() + TimeWindow;
 
         stepHandler = handler;
 
-        autoCorrelation = new AutoCorrelation2(handler);
+        corr = new AutoCorrelation(new ArrayList<Double>());
+
+        //autoCorrelation = new AutoCorrelation(handler);
     }
 
     public void pauseSensor() {
@@ -75,9 +89,10 @@ public class StepDetector implements SensorEventListener {
     }
 
     private void handleValue(double magnitude) {
-        //accMagnitude.add(magnitude);
-        autoCorrelation.addMagnitude(magnitude);
-/*
+        accMagnitude.add(magnitude);
+        corr.addData(magnitude);
+
+
         // Time window has elapsed
         if (System.currentTimeMillis() > endOfWindow) {
             // Calculate standard deviation
@@ -86,13 +101,20 @@ public class StepDetector implements SensorEventListener {
             if (sd <= STANDARD_DEV_WALKING_THRESHOLD) {
                 // Change state to standing still
                 currentState = State.STILL;
-            } else if (currentState == State.STILL && autoCorrelation.getCorrelation() > CORRELATION_WALKING_THRESHOLD) {
-                // Change state to walking
-                currentState = State.WALKING;
+            } else {
+
+                if (corr.getAutoCorrelation() > CORRELATION_WALKING_THRESHOLD) {
+                    // Change state to walking
+                    currentState = State.WALKING;
+                    TimeWindow = corr.optPeriod * 20; // Convert from nr of samples to ms
+                    Log.d("period", TimeWindow + ", " + corr.optPeriod);
+                }
             }
 
+            Log.d("End of window", "state is " + currentState.toString());
+
             // Set the time window
-            TimeWindow = autoCorrelation.getOptimalTimeWindow();
+            //TimeWindow = autoCorrelation.getOptimalTimeWindow();
 
             // Do step
             if (stepHandler != null && currentState == State.WALKING)
@@ -100,7 +122,7 @@ public class StepDetector implements SensorEventListener {
 
             accMagnitude.clear();
             endOfWindow = System.currentTimeMillis() + TimeWindow;
-        }*/
+        }
     }
 
     @Override
