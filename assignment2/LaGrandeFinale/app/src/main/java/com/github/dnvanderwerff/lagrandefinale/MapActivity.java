@@ -6,11 +6,9 @@ import android.content.Intent;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.TextView;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
@@ -59,7 +57,7 @@ public class MapActivity extends Activity {
 
         collisionMap = new CollisionMap(mapType);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(4000);
+        particleController.initialize(10000);
         // Show surface
         surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 
@@ -80,6 +78,7 @@ public class MapActivity extends Activity {
     }
 
     public void doStep(View view) {
+        Log.d("TimeStart", "" + System.currentTimeMillis());
         // Get direction
         double directionRadians = radianMe;//radianNorth + offsetRadianBuildingMap;
 
@@ -93,6 +92,8 @@ public class MapActivity extends Activity {
 
         // Show surface
         cellView.setText(particleController.getActiveCell());
+
+        Log.d("TimeBetween", "" + System.currentTimeMillis());
         //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
