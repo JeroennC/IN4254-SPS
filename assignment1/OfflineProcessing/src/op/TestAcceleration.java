@@ -12,16 +12,27 @@ public class TestAcceleration {
 
 	public static void main(String[] args) {
 		
-		String[] labels = {"walking", "still", "sudden movements"};
+		String[] labels = {"walking", "still", "sudden movements", "mix"};
 		
 		String[] paths = {"C:/Users/jeroe/Documents/Programming/SPS/IN4254-SPS/assignment2/accelData/walking.dat",
 				"C:/Users/jeroe/Documents/Programming/SPS/IN4254-SPS/assignment2/accelData/still.dat",
-				"C:/Users/jeroe/Documents/Programming/SPS/IN4254-SPS/assignment2/accelData/suddenmovements.dat"};
-		for (int i = 0; i < 3; i++) {
+				"C:/Users/jeroe/Documents/Programming/SPS/IN4254-SPS/assignment2/accelData/suddenmovements.dat",
+				"C:/Users/jeroe/Documents/Programming/SPS/IN4254-SPS/assignment2/accelData/mix.dat"};
+		for (int i = 0; i < paths.length; i++) {
 			StepDetector stepDetector = new StepDetector();
 
 			LinkedList<Double> dataHistory = new LinkedList<Double>();
-			Path p = Paths.get(paths[i]);
+			Path p;/* = Paths.get(paths[0]);
+			try {
+				List<String> lines = Files.readAllLines(p);
+				for (String str : lines) {
+					dataHistory.add(Double.parseDouble(str));
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
+			p = Paths.get(paths[i]);
 			try {
 				List<String> lines = Files.readAllLines(p);
 				for (String str : lines) {
@@ -38,12 +49,15 @@ public class TestAcceleration {
 			int still = 0;
 			int walk = 0;
 			while (it.hasNext()) {
+				counter++;
 				double val = it.next();
 				stepDetector.handleValue(val);
-				if (stepDetector.getState() == StepDetector.State.STILL)
-					still++;
-				else
-					walk++;
+				if (counter > 209) {
+					if (stepDetector.getState() == StepDetector.State.STILL)
+						still++;
+					else
+						walk++;
+				}
 			}
 			
 			System.out.println(labels[i] + ": {Walk: " + walk + ", Still: " + still + "}");

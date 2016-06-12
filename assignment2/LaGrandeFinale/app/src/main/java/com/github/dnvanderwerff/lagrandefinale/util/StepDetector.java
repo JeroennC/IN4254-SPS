@@ -19,7 +19,7 @@ public class StepDetector implements SensorEventListener {
     private static final float ALPHA = 0.8f;
     public static final int STEP_HANDLER_ID = 3333;
     public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
-    public static final double CORRELATION_WALKING_THRESHOLD = 0.7;
+    public static final double CORRELATION_WALKING_THRESHOLD = 0.4;
     public static final int tMax = 50;
 
     public enum State {
@@ -40,7 +40,9 @@ public class StepDetector implements SensorEventListener {
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
     List<Double> valueBuffer; // Buffer of magnitudes while paused
     long TimeWindow = 600;                              // Time window in ms, can be adapted
+    int sampleWindow = 30;
     long endOfWindow; // Set current endOfWindow
+    int sampleCount;
     private boolean paused = false;
 
     public State getState() {
@@ -68,6 +70,7 @@ public class StepDetector implements SensorEventListener {
         accMagnitude = new ArrayList<>();
 
         endOfWindow = System.currentTimeMillis() + TimeWindow;
+        sampleCount = 0;
 
         stepHandler = handler;
 
@@ -89,13 +92,14 @@ public class StepDetector implements SensorEventListener {
     }
 
     private void handleValue(double magnitude) {
-        Log.d("Magnitude", String.format("%.5f", magnitude));
+        sampleCount++;
         accMagnitude.add(magnitude);
         corr.addData(magnitude);
 
 
         // Time window has elapsed
-        if (System.currentTimeMillis() > endOfWindow) {
+        if (sampleCount >= sampleWindow) {
+            sampleCount = 0;
             // Calculate standard deviation
             double sd = sd(accMagnitude);
 
@@ -106,8 +110,11 @@ public class StepDetector implements SensorEventListener {
                 // Change state to walking
                 currentState = State.WALKING;
                 TimeWindow = corr.optPeriod * 20
-                    / 2 // if 2 steps
-                    ; // Convert from nr of samples to ms
+                        / 2 // if 2 steps
+                ; // Convert from nr of samples to ms
+                sampleWindow = corr.optPeriod
+                        / 2 // if 2 steps
+                ;
                 Log.d("period", TimeWindow + ", " + corr.optPeriod);
             }
 

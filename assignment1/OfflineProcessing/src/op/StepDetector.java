@@ -13,8 +13,7 @@ public class StepDetector {
     private static final float ALPHA = 0.8f;
     public static final int STEP_HANDLER_ID = 3333;
     public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
-    public static final double CORRELATION_WALKING_THRESHOLD = 0.7;
-    public static final int tMax = 50;
+    public static final double CORRELATION_WALKING_THRESHOLD = .4;
 
     public enum State {
         STILL,WALKING
@@ -68,7 +67,7 @@ public class StepDetector {
 /*
         stepHandler = handler;*/
 
-        corr = new AutoCorrelation(new ArrayList<Double>());
+        corr = new AutoCorrelation(this, new ArrayList<Double>());
 
         //autoCorrelation = new AutoCorrelation(handler);
     }
@@ -85,11 +84,13 @@ public class StepDetector {
             handleValue(it.next());
     }
 
+    public int counter = 0;
     public void handleValue(double magnitude) {
         //Log.d("Magnitude", String.format("%.5f", magnitude));
         accMagnitude.add(magnitude);
         corr.addData(magnitude);
         sampleCount++;
+        counter++;
 
 
         // Time window has elapsed
@@ -97,18 +98,25 @@ public class StepDetector {
         	sampleCount = 0;
             // Calculate standard deviation
             double sd = sd(accMagnitude);
+            double maxMagnitude = max(accMagnitude);
+            
             //System.out.println(sd);
             if (sd <= STANDARD_DEV_WALKING_THRESHOLD) {
                 // Change state to standing still
                 currentState = State.STILL;
             } else {
-            	if (corr.getAutoCorrelation() > AutoCorrelation.WALKING_THRESHOLD) {
-            
+            	if (corr.getAutoCorrelation() > CORRELATION_WALKING_THRESHOLD) {
 	                // Change state to walking
 	                currentState = State.WALKING;
 	                TimeWindow = corr.optPeriod * 20
 	                    / 2 // if 2 steps
 	                    ; // Convert from nr of samples to ms
+	                sampleWindow = corr.optPeriod
+	                	/ 2 // if 2 steps
+	                	;
+	                
+	                // Sudden movements have a much higher amplitude, store walking
+	                
 	                //Log.d("period", TimeWindow + ", " + corr.optPeriod);
             	}
             }
@@ -170,5 +178,14 @@ public class StepDetector {
             sum += Math.pow((i - mean), 2);
 
         return Math.sqrt( sum / a.size() );
+    }
+    
+    private double max (List<Double> a) {
+    	double max = Double.MIN_VALUE;
+    	
+    	for (double i : a)
+    		max = i > max ? i : max;
+    		
+    	return max;
     }
 }

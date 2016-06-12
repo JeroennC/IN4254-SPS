@@ -19,15 +19,15 @@ public class AutoCorrelation {
     //private static final int tMin = 20, tMax =50; // 1 stap
     private static final int tMin = 40, tMax = 100; // 2 stappen
     private static final int smoothIntervalTail = 2;            // Parameter used for smoothing accelerator data
-    public static final double WALKING_THRESHOLD = 0.7;
     private static final int tWindowTailSize = 5; // Distance from optimal tau that is checked
     private List<Double> accData;   // Smoothed accelerator signal
     private LinkedList<Double> rawAccData;   // Raw accelerator signal
     public State currentState;      // Activity state of user
     public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
     public double autocorr;
+    private double maxMagnitudeThreshold; // Is a threshold for the maximum magnitude, to ignore big sudden values
     public int lowT = tMin, highT = tMax;
-
+    private StepDetector stepDetector;
 
     public enum State {
         STILL,WALKING
@@ -40,20 +40,24 @@ public class AutoCorrelation {
 
         public int period;
         public double max;
+        public double maxMagnitude;
 
-        public Result(int p, double m) {
+        public Result(int p, double m, double magnitude) {
             this.period = p;
             this.max = m;
+            this.maxMagnitude = magnitude;
         }
     }
 
     /* Constructor */
-    public AutoCorrelation(List<Double> accData) {
+    public AutoCorrelation(StepDetector stepDetector, List<Double> accData) {
         this.accData = accData;
         this.rawAccData = new LinkedList<>();
         this.optPeriod = 30;
         this.currentState = State.STILL;
         this.autocorr = 0;
+        this.stepDetector = stepDetector;
+        this.maxMagnitudeThreshold = 6;//Double.MAX_VALUE;
 
         // Set state of user for given accData window
         setState();
@@ -76,24 +80,28 @@ public class AutoCorrelation {
         setState();
         return this.autocorr;
     }
-
+    
     /* Set state of user for sample m by checking value of psi(m) */
     public void setState() {
-
         // Check if enough data has been obtained
         if (accData.size() > 2 * tMax + 1) {
             Result res = maxNormAutoCorrelation(0, lowT, highT);
             this.autocorr = res.max;
-            if (res.max > WALKING_THRESHOLD) {
+            if (res.max > StepDetector.CORRELATION_WALKING_THRESHOLD) {
                 this.currentState = State.WALKING;
                 this.optPeriod = res.period;
-                this.lowT = this.optPeriod - this.tWindowTailSize < tMin ? tMin : this.optPeriod - this.tWindowTailSize;
-                this.highT = this.optPeriod + this.tWindowTailSize > tMax ? tMax : this.optPeriod + this.tWindowTailSize;
+                this.lowT = this.optPeriod - tWindowTailSize < tMin ? tMin : this.optPeriod - tWindowTailSize;
+                this.highT = this.optPeriod + tWindowTailSize > tMax ? tMax : this.optPeriod + tWindowTailSize;
+                // Update max magnitude
+                this.maxMagnitudeThreshold = res.maxMagnitude * 4;
             } else {
                 this.currentState = State.STILL;
             }
             //Log.d("autocorr_res", String.format("optPeriod " + this.optPeriod + ", AutoCorr %.2f", res.max));
-
+/*
+            if (autocorr > StepDetector.CORRELATION_WALKING_THRESHOLD) {
+            	System.out.println(stepDetector.counter + " - " + autocorr + ", " + optPeriod);
+            }*/
         }
     }
 
@@ -125,21 +133,32 @@ public class AutoCorrelation {
      * for sample m. Corresponding period is returned as well. */
     public Result maxNormAutoCorrelation(int m, int tauMin, int tauMax) {
 
-        double max = 0;
+        double maxAC = -1;
         int optPeriod = 0;
         int size = this.accData.size();
         int currentM = size - 1 - tauMin * 2;
+        
+        // Check the max value being used
+        double maxMagnitude = Double.MIN_VALUE;
+        double val;
+        for (int i = size - 1 - tauMax * 2; i < size; i++) {
+        	val = accData.get(i);
+        	maxMagnitude = val > maxMagnitude ? val : maxMagnitude;
+        }
+        // If above threshold never mind
+        if (maxMagnitude > maxMagnitudeThreshold)
+        	return new Result(0, -1, maxMagnitude);
 
         for (int t = tauMin; t <= tauMax; t++, currentM -= 2) {
             double x = X(currentM, t);
-            if (x > max) {
-                max = x;
+            if (x > maxAC) {
+            	maxAC = x;
                 optPeriod = t;
             }
 
         }
         //Log.d("maxNorm", String.format("Max %.2f optPeriod " + optPeriod,max));
-        return new Result(optPeriod, max);
+        return new Result(optPeriod, maxAC, maxMagnitude);
     }
 
 
