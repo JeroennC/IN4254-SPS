@@ -3,7 +3,9 @@ package com.github.dnvanderwerff.lagrandefinale.util;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Created by Danielle on 26-5-16.
@@ -16,13 +18,18 @@ import java.util.List;
  * as described by http://research.microsoft.com/pubs/166309/com273-chintalapudi.pdf.
  */
 public class AutoCorrelation {
-
-    public static final int tMin = 20, tMax = 50; // TODO pas deze waarden aan naar iets logisch
+    //private static final int tMin = 20, tMax =50; // 1 stap
+    private static final int tMin = 40, tMax = 100; // 2 stappen
+    private static final int smoothIntervalTail = 2;            // Parameter used for smoothing accelerator data
     public static final double WALKING_THRESHOLD = 0.7;
-    private List<Double> accData;   // Accelerator signal
+    private static final int tWindowTailSize = 5; // Distance from optimal tau that is checked
+    private List<Double> accData;   // Smoothed accelerator signal
+    private LinkedList<Double> rawAccData;   // Raw accelerator signal
     public State currentState;      // Activity state of user
     public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
     public double autocorr;
+    public int lowT = tMin, highT = tMax;
+
 
     public enum State {
         STILL,WALKING
@@ -45,6 +52,7 @@ public class AutoCorrelation {
     /* Constructor */
     public AutoCorrelation(List<Double> accData) {
         this.accData = accData;
+        this.rawAccData = new LinkedList<>();
         this.optPeriod = 30;
         this.currentState = State.STILL;
         this.autocorr = 0;
@@ -54,9 +62,15 @@ public class AutoCorrelation {
     }
 
     public void addData(double data) {
-        this.accData.add(data);
+        rawAccData.add(data);
+        if (rawAccData.size() > smoothIntervalTail * 2 + 1)
+            rawAccData.removeFirst();
+
+        // Get smooth value
+        accData.add(getAverage(rawAccData));
+
         if (accData.size() > 2 * tMax + 2) {
-            this.accData.remove(0);
+            accData.remove(0);
         }
     }
 
@@ -70,11 +84,13 @@ public class AutoCorrelation {
 
         // Check if enough data has been obtained
         if (accData.size() > 2 * tMax + 1) {
-            Result res = maxNormAutoCorrelation(0, tMin, tMax);
+            Result res = maxNormAutoCorrelation(0, lowT, highT);
             this.autocorr = res.max;
             if (res.max > WALKING_THRESHOLD) {
                 this.currentState = State.WALKING;
                 this.optPeriod = res.period;
+                this.lowT = this.optPeriod - this.tWindowTailSize < tMin ? tMin : this.optPeriod - this.tWindowTailSize;
+                this.highT = this.optPeriod + this.tWindowTailSize > tMax ? tMax : this.optPeriod + this.tWindowTailSize;
             } else {
                 this.currentState = State.STILL;
             }
@@ -94,7 +110,14 @@ public class AutoCorrelation {
             X += (accData.get(m+k) - mu1) * (accData.get(m+k+tau) - mu2);
         }
 
-        X /= (tau * sd(m, tau) * sd(m + tau, tau));
+        double sd1 = sd(m, tau);
+        double sd2 = sd(m + tau, tau);
+
+        // Check if samples have high enough standard deviation
+        if (sd1 < StepDetector.STANDARD_DEV_WALKING_THRESHOLD || sd2 < StepDetector.STANDARD_DEV_WALKING_THRESHOLD)
+            return -1;
+
+        X /= (tau * sd1 * sd2);
         Log.d("X",String.format("%.2f",X));
         return X;
     }
@@ -105,13 +128,16 @@ public class AutoCorrelation {
 
         double max = 0;
         int optPeriod = 0;
+        int size = this.accData.size();
+        int currentM = size - 1 - tauMin * 2;
 
-        for (int t = tauMin; t <= tauMax; t++) {
-            double x = X(m, t);
+        for (int t = tauMin; t <= tauMax; t++, currentM -= 2) {
+            double x = X(currentM, t);
             if (x > max) {
                 max = x;
                 optPeriod = t;
             }
+
         }
         Log.d("maxNorm", String.format("Max %.2f optPeriod " + optPeriod,max));
         return new Result(optPeriod, max);
@@ -143,6 +169,16 @@ public class AutoCorrelation {
         mean /= (l - 1); // l - 1 instead of l since it is a sample, not a population
 
         return mean;
+    }
+
+    private double getAverage(LinkedList<Double> list) {
+        ListIterator<Double> it = list.listIterator();
+        double val = 0;
+        while (it.hasNext()) {
+            val += it.next();
+        }
+
+        return val / list.size();
     }
 
 
