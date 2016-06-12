@@ -26,7 +26,7 @@ import java.util.TimerTask;
 public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
     private final static int offsetDegreesBuildingMap =  -30;
-    private final static double offsetRadianBuildingMap = Math.toRadians(offsetDegreesBuildingMap);
+    private final static float offsetRadianBuildingMap = (float)(Math.toRadians(offsetDegreesBuildingMap));
 
     private CollisionMap collisionMap;
     private ParticleController particleController;
@@ -42,8 +42,8 @@ public class MapActivity extends Activity {
     private StepDetector stepDetector;
 
     /* Variables */
-    private int degreeNorth, degreeMe;
-    private float radianNorth, radianMe;
+    private int degreeNorth = offsetDegreesBuildingMap + 90, degreeMe;
+    private float radianNorth = (float)(offsetRadianBuildingMap + 0.5 * Math.PI), radianMe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +81,7 @@ public class MapActivity extends Activity {
 
     public void doStep(View view) {
         // Get direction
-        double directionRadians = radianNorth + offsetRadianBuildingMap;
+        double directionRadians = radianMe;//radianNorth + offsetRadianBuildingMap;
 
         stepDetector.pauseSensor();
         // Move particles
@@ -100,10 +100,10 @@ public class MapActivity extends Activity {
     class updateCompassTask extends TimerTask {
         @Override
         public void run() {
-            degreeNorth = directionExtractor.getDegreeNorth();
-            radianNorth = directionExtractor.getRadianNorth();
-            degreeMe = directionExtractor.getDegreeMe();
-            radianMe = directionExtractor.getRadianMe();
+            //is now always constant degreeNorth = directionExtractor.getDegreeNorth();
+            //is now always constant radianNorth = directionExtractor.getRadianNorth();
+            degreeMe = 360 - (directionExtractor.getDegreeMe() + offsetDegreesBuildingMap);
+            radianMe = 2 * (float)Math.PI - (directionExtractor.getRadianMe() + offsetRadianBuildingMap);
 
             mHandler.obtainMessage(1).sendToTarget();
         }

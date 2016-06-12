@@ -90,7 +90,7 @@ public class ParticleController {
             newDirection = directionRadians + ndDirection.nextValue();
 
             // Change particle position
-            p.x += Math.sin(newDirection) * stepSize;
+            p.x += -Math.sin(newDirection) * stepSize;
             p.y += -Math.cos(newDirection) * stepSize;
 
             cell = map.getCell(p.x, p.y);
