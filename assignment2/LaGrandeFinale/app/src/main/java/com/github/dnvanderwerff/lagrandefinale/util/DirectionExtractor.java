@@ -16,11 +16,16 @@ public class DirectionExtractor implements SensorEventListener {
     public static final float FILTER_COEFFICIENT = 0.98f;
 
     /* Sensors */
-    private Sensor accelerometer, magnetometer, gyroscope;
+    private Sensor gravity, magnetometer, gyroscope;
+    private Sensor accelerometer;
 
     /* Variables */
     private boolean initState = true;
     private float timestamp;
+
+    // linear acceleration values
+    private float[] accelValues = new float[3];
+    private float[] earthAccelValues = new float[2];
 
     // angular speeds from gyro
     private float[] gyroscopeValues = new float[3];
@@ -76,9 +81,10 @@ public class DirectionExtractor implements SensorEventListener {
 
 
         /* Get Sensors */
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        if (accelerometer == null)
-            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        gravity = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        if (gravity == null)
+            gravity = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        //accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
     }
@@ -96,13 +102,56 @@ public class DirectionExtractor implements SensorEventListener {
                 break;
             case Sensor.TYPE_GYROSCOPE:
                 processGyroscope(event);
+                break;
+            case Sensor.TYPE_LINEAR_ACCELERATION:
+                // Not being used
+                accelValues = lowPass(event.values.clone(), accelValues, ALPHA);
+                calculatePlacementOffset();
+                break;
         }
 
          /* Set Outputs */
         //radianNorth = accMagOrientation[0];
         //degreeNorth = (int)(Math.toDegrees(accMagOrientation[0])+360)%360;
-        radianNorth = gyroOrientation[0] + (float)(0.5 * Math.PI); /* Plus .5PI for phone @ landscape */
-        degreeNorth = (int)(Math.toDegrees(gyroOrientation[0])+360 + 90 /* Because of phone landscape */)%360;
+        radianMe = gyroOrientation[0] + (float)(0.5 * Math.PI); /* Plus .5PI for phone @ landscape */
+        degreeMe = (int)(Math.toDegrees(gyroOrientation[0])+360 + 90 /* Because of phone landscape */)%360;
+    }
+
+    // Use linear acceleration and the true north to deduce which direction the user is walking in
+    // This doesn't really work.. yet?
+    private void calculatePlacementOffset() {
+        // It also needs the gravity and magnetic values orientation
+        float[] inv = new float[9];
+        float[] accelEarth = new float[4];
+
+        // Invert the rotation matrix
+        //android.opengl.Matrix.invertM(inv, 0, rotationMatrix, 0);
+        // Get the accelerator in earths axes
+        matrixVectorMultiplication(accelEarth, rotationMatrix, accelValues);
+
+        // We only care about x and y, the first 2 indices
+        float minThreshold = .5f;
+
+        // If neither x and y are interesting, dont change anything
+        if (Math.abs(accelEarth[0]) < minThreshold
+                && Math.abs(accelEarth[1]) < minThreshold)
+            return;
+
+        // If it is interesting, update
+        if (Math.abs(accelEarth[0]) > minThreshold) {
+            earthAccelValues[0] = accelEarth[0];
+            // Make sure it is still neg/pos, but not too afflicted by using low pass
+            earthAccelValues[1] = .8f * earthAccelValues[1] + .2f * accelEarth[1];
+        }
+        if (Math.abs(accelEarth[1]) < minThreshold) {
+            earthAccelValues[1] = accelEarth[1];
+            // Make sure it is still neg/pos, but not too afflicted by using low pass
+            earthAccelValues[0] = .8f * earthAccelValues[0] + .2f * accelEarth[0];
+        }
+
+        // Calculate the new degree
+        radianMe = (float)Math.atan2(earthAccelValues[1], earthAccelValues[0]);
+        degreeMe = (int)(Math.toDegrees(radianMe)+360)%360;
     }
 
     // calculates orientation angles from accelerometer and magnetometer output
@@ -284,11 +333,18 @@ public class DirectionExtractor implements SensorEventListener {
         return result;
     }
 
+    private void matrixVectorMultiplication(float[] result, float[] A, float[] B) {
+        result[0] = A[0] * B[0] + A[1] * B[1] + A[2] * B[2];
+        result[1] = A[3] * B[0] + A[4] * B[1] + A[5] * B[2];
+        result[2] = A[6] * B[1] + A[7] * B[1] + A[8] * B[2];
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {  }
 
     public void registerListeners(SensorManager sensorManager) {
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        //sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(this, gravity, SensorManager.SENSOR_DELAY_GAME);
         sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
     }

@@ -6,10 +6,9 @@ import android.content.Intent;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.TextView;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
@@ -24,6 +23,8 @@ import java.util.TimerTask;
 
 public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
+    private final static int offsetDegreesBuildingMap =  -30;
+    private final static float offsetRadianBuildingMap = (float)(Math.toRadians(offsetDegreesBuildingMap));
 
     private CollisionMap collisionMap;
     private ParticleController particleController;
@@ -39,8 +40,8 @@ public class MapActivity extends Activity {
     private StepDetector stepDetector;
 
     /* Variables */
-    private int degreeNorth, degreeMe;
-    private float radianNorth, radianMe;
+    private int degreeNorth = offsetDegreesBuildingMap + 90, degreeMe;
+    private float radianNorth = (float)(offsetRadianBuildingMap + 0.5 * Math.PI), radianMe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +57,7 @@ public class MapActivity extends Activity {
 
         collisionMap = new CollisionMap(mapType);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(1000);
+        particleController.initialize(10000);
         // Show surface
         surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 
@@ -77,17 +78,22 @@ public class MapActivity extends Activity {
     }
 
     public void doStep(View view) {
+        Log.d("TimeStart", "" + System.currentTimeMillis());
         // Get direction
-        double directionRadians = radianNorth;
+        double directionRadians = radianMe;//radianNorth + offsetRadianBuildingMap;
 
+        stepDetector.pauseSensor();
         // Move particles
         particleController.move(directionRadians);
+        stepDetector.resumeSensor();
 
         // Draw
         mapView.update();
 
         // Show surface
         cellView.setText(particleController.getActiveCell());
+
+        Log.d("TimeBetween", "" + System.currentTimeMillis());
         //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
@@ -95,10 +101,10 @@ public class MapActivity extends Activity {
     class updateCompassTask extends TimerTask {
         @Override
         public void run() {
-            degreeNorth = directionExtractor.getDegreeNorth();
-            radianNorth = directionExtractor.getRadianNorth();
-            degreeMe = directionExtractor.getDegreeMe();
-            radianMe = directionExtractor.getRadianMe();
+            //is now always constant degreeNorth = directionExtractor.getDegreeNorth();
+            //is now always constant radianNorth = directionExtractor.getRadianNorth();
+            degreeMe = 360 - (directionExtractor.getDegreeMe() + offsetDegreesBuildingMap);
+            radianMe = 2 * (float)Math.PI - (directionExtractor.getRadianMe() + offsetRadianBuildingMap);
 
             mHandler.obtainMessage(1).sendToTarget();
         }
@@ -109,8 +115,9 @@ public class MapActivity extends Activity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    degreeView.setText(degreeNorth + "d");
+                    //degreeView.setText(degreeNorth + "d");
                     compass.update(radianNorth, radianMe);
+                    degreeView.setText(String.format("c: %.2f\nt: %d", stepDetector.getCorrelation(), stepDetector.getOptimalTimeWindow()));
                     surfaceView.setText("I am " + stepDetector.getState().toString());
                     break;
                 case StepDetector.STEP_HANDLER_ID:

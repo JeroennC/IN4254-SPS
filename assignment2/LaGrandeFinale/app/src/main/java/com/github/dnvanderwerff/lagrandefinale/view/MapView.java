@@ -7,7 +7,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.View;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.Cell;
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
@@ -15,32 +17,86 @@ import com.github.dnvanderwerff.lagrandefinale.particle.Particle;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
 
 /**
- * Created by Jeroen on 21/05/2016.
+ * Created by Jeroen on 12/06/2016.
  */
-public class MapView extends View {
+public class MapView extends SurfaceView implements SurfaceHolder.Callback {
+    private Context context;
     private CollisionMap collisionMap;
     private ParticleController particleController;
     private Bitmap background;
 
-    public MapView(Context context) {
+    public MapView (Context context) {
         super(context);
+        this.context = context;
     }
 
     public MapView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        this.context = context;
     }
 
     public MapView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        this.context = context;
     }
 
     public MapView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        this.context = context;
     }
 
     public void initialize(CollisionMap m, ParticleController pc) {
         collisionMap = m;
         particleController = pc;
+        this.getHolder().addCallback(this);
+    }
+
+    public void update() {
+        SurfaceHolder mSurfaceHolder = this.getHolder();
+        if (mSurfaceHolder == null) return;
+
+        Surface surface = mSurfaceHolder.getSurface();
+
+        Canvas canvas = mSurfaceHolder.lockCanvas();
+        synchronized (mSurfaceHolder) {
+            drawMap(canvas);
+            mSurfaceHolder.unlockCanvasAndPost(canvas);
+        }
+    }
+
+    protected void drawMap(Canvas canvas) {
+        Log.d("TimeStartDraw", "" + System.currentTimeMillis());
+        long start = System.currentTimeMillis();
+        int w = getMeasuredWidth();
+        int h = getMeasuredHeight();
+
+        if (collisionMap == null) return;
+
+        float tileW = ((float)w) / collisionMap.width;
+        float tileH = ((float)h) / collisionMap.height;
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL);
+
+        // Draw background
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(background,0,0, null);
+        long bg = System.currentTimeMillis();
+
+        // Draw particools
+        Particle[] particools = particleController.getParticles();
+        paint.setColor(Color.RED);
+        float meterToCanvasW = tileW * 10;
+        float meterToCanvasH = tileH * 10;
+        for (Particle particool : particools) {
+            if (!particool.valid) continue;
+            canvas.drawCircle(
+                    (float)particool.x * meterToCanvasW,
+                    (float)particool.y * meterToCanvasH, 2, paint);
+        }
+        long particles = System.currentTimeMillis();
+        Log.d("TimeParticle", (bg - start) + "\t" + (particles - bg));
+        Log.d("TimeEnd", "" + System.currentTimeMillis());
     }
 
     private void createBackground(int w, int h) {
@@ -108,36 +164,16 @@ public class MapView extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        int w = getMeasuredWidth();
-        int h = getMeasuredHeight();
-
-        if (collisionMap == null) return;
-
-        float tileW = ((float)w) / collisionMap.width;
-        float tileH = ((float)h) / collisionMap.height;
-
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStyle(Paint.Style.FILL);
-
-        // Draw background
-        canvas.drawColor(Color.BLACK);
-        canvas.drawBitmap(background,0,0, null);
-
-        // Draw particools
-        Particle[] particools = particleController.getParticles();
-        paint.setColor(Color.RED);
-        float meterToCanvasW = tileW * 10;
-        float meterToCanvasH = tileH * 10;
-        for (Particle particool : particools) {
-            if (!particool.valid) continue;
-            canvas.drawCircle(
-                    (float)particool.x * meterToCanvasW,
-                    (float)particool.y * meterToCanvasH, 5, paint);
-        }
+    public void surfaceCreated(SurfaceHolder holder) {
+        update();
     }
 
-    public void update() {
-        invalidate();
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        createBackground(width, height);
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
     }
 }

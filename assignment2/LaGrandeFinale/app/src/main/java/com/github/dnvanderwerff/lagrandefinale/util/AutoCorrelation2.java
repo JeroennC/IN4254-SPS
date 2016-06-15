@@ -1,5 +1,8 @@
 package com.github.dnvanderwerff.lagrandefinale.util;
 
+import android.os.Handler;
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -10,40 +13,58 @@ import java.util.ListIterator;
  * Created by Jeroen on 03/06/2016.
  */
 public class AutoCorrelation2 {
-    private static final int msPerSample = 20;
-    private static final int smoothIntervalTail = 2;
-    private static final int windowSize = 30;
-    private static final int minInterpeakSize = 10;
-    LinkedList<Double> smoothMagnitudeHistory;
-    LinkedList<Double> magnitudeHistory;
-    List<Integer> indices; // Indices of peaks within smoothMagnitudeHistory
+    private static final int msPerSample = 20;                  // Amount of ms elapsed per sample
+    private static final int smoothIntervalTail = 2;            // Parameter used for sizing magnitudeHistory
+    private static final int windowSize = 30;                   // Nr of sample per window (window in which we search for a peak)
+    private static final int minTimeWindow = 400, maxTimeWindow = 1000;
+    private static final int minSampleWindow = minTimeWindow / msPerSample, maxSampleWindow = maxTimeWindow / msPerSample;
+    private static final int minListSize = 80;
+    // Peak offsets used
+    private static final int offsetR = 15, offsetL = 15;        // Nr of samples from peak center
+    private static final int peakWindow = offsetR + offsetL;    // Nr of samples used around one peak
+    private static final int minInterpeakSize = minSampleWindow;
+    LinkedList<Double> smoothMagnitudeHistory;                  // List of smoothed acc magnitude values
+    LinkedList<Double> magnitudeHistory;                        // List of acc magnitude values
+    List<Integer> indices;                                      // Indices of peaks within smoothMagnitudeHistory
 
-    private int optimalTimeWindow; // in ms
-    private int certaintySampleWindow; // in samples
-    private int listSize;
-    private int offsetR, offsetL;
+    private int optimalSamplesBetween;
+    private int optimalTimeWindow;                  // in ms
+    private int certaintySampleWindow;              // in samples
+    private int listSize = 0;
     private double correlation;
+    private int lastPeak = - minInterpeakSize + 2;  // Parameter used for detectPeaks, keeps track of last peak index
+    private Handler stepHandler;                    // Handler to send steps
 
     public double getCorrelation() {
         return correlation;
     }
 
-    public AutoCorrelation2() {
+    public int getOptimalTimeWindow() { return optimalTimeWindow; }
+
+    public AutoCorrelation2(Handler handler) {
         optimalTimeWindow = 600;
+        optimalSamplesBetween = optimalTimeWindow / msPerSample;
         certaintySampleWindow = 5;
         setListSize();
 
-        correlation = 0;
+        stepHandler = handler;
 
-        // Peak offsets used
-        offsetL = 15;
-        offsetR = 15;
+        correlation = 0;
 
         smoothMagnitudeHistory = new LinkedList<>();
         magnitudeHistory = new LinkedList<>();
     }
 
+    private int counter = 0;
+    private int c2 = 0;
+
     public void addMagnitude(double magnitude) {
+
+        // TODO wtf bruhh waarom werkt dit niet D=
+
+        // Adjust lastPeak to compensate for the shift of smoothMagnitudeHistory
+        counter++;
+
         magnitudeHistory.add(magnitude);
         if (magnitudeHistory.size() > smoothIntervalTail * 2 + 1)
             magnitudeHistory.removeFirst();
@@ -52,14 +73,61 @@ public class AutoCorrelation2 {
         smoothMagnitudeHistory.add(getAverage(magnitudeHistory));
 
         // Reduce smoothed list size
-        synchronized (this) {
-            while (smoothMagnitudeHistory.size() > listSize)
-                smoothMagnitudeHistory.removeFirst();
+        while (smoothMagnitudeHistory.size() > listSize) {
+            smoothMagnitudeHistory.removeFirst();
+            lastPeak--;
+            if (lastPeak < - minInterpeakSize + 1) lastPeak = - minInterpeakSize +1;
         }
 
-        // Only compute peaks if enough acc data has been obtained so far
-        if (smoothMagnitudeHistory.size() == listSize) {
+        int newPeak = detectPeak(lastPeak,smoothMagnitudeHistory);
+        Log.d("Smooth data" , counter + "," + String.format("%.2f",smoothMagnitudeHistory.getLast()));
+        if (newPeak != -1) {
 
+            // Check if peaks are not too far apart and lastPeak not too big
+            if (newPeak - lastPeak <= maxSampleWindow && newPeak - lastPeak >= offsetL) {
+                // Two peaks have been found close to each other, compute their autocorrelation
+                if (calculateAutocorrelation(lastPeak, newPeak)
+                        && stepHandler != null) {
+                    stepHandler.obtainMessage(StepDetector.STEP_HANDLER_ID).sendToTarget();
+                    Log.d("autocorr",counter + "," + String.format("lopend %.2f", correlation));
+                }
+                Log.d("autocorr",counter + "," + String.format("%.2f", correlation));
+            }
+
+            // Separate out f and g
+            double f[] = new double[peakWindow];
+
+            // Get starting and ending indices
+            int fstart = newPeak - offsetL < 0 ? 0 : newPeak - offsetL;
+            int fend = newPeak + offsetR > smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() : newPeak + offsetR;
+
+            // Iterate through the list and extract values to f and g
+            ListIterator<Double> it = smoothMagnitudeHistory.listIterator(fstart);
+            int index = fstart;
+            double val;
+            while(it.hasNext()) {
+                val = it.next();
+                if (index < fend)
+                    f[index - fstart] = val;
+                index++;
+            }
+
+            // Calculate the means and standard deviations
+            double fmean = mean(f);
+            double fsd = sd(f, fmean);
+
+            // Don't use STILL data as it gives very bad things!
+            if (fsd >= StepDetector.STANDARD_DEV_WALKING_THRESHOLD) {
+                lastPeak = newPeak;
+            }
+
+        }
+
+
+
+        // Only compute peaks if enough acc data has been obtained so far
+        /*if (smoothMagnitudeHistory.size() == listSize && counter++ == windowSize / 3) {
+            counter = 0;
             // If peak found in a useful position (some lag perhaps), calculate autocorrelation from last two peaks
             indices = findPeaks(smoothMagnitudeHistory);
 
@@ -67,13 +135,53 @@ public class AutoCorrelation2 {
             if (size >= 2) {// new peaks found
                 calculateAutocorrelation(indices.get(size - 2), indices.get(size - 1));
             }
+        }*/
+    }
+
+    /* Returns index of highest peak after lastPeak within smoothMagnitudes */
+    private int detectPeak(int lastPeak, LinkedList<Double> smoothMagnitudes) {
+        // Find start and end indices
+        int startIndex = lastPeak + minInterpeakSize;
+        if (startIndex + 1 > smoothMagnitudes.size()) return -1;
+
+        int endIndex = smoothMagnitudes.size() - offsetR;
+
+        // TODO  threshold? -> adapt max below
+
+        int i = 1;
+        double max  = 0.0;
+        int peakLoc = -1;
+        Iterator<Double> it = smoothMagnitudes.listIterator(startIndex-1);
+        double previous = it.next();
+        double current = it.next();
+        double next;
+
+        while (it.hasNext() && startIndex + i < endIndex ) {
+
+            next = it.next();
+
+            // Check if value is a peak
+            if (previous < current && next < current) {
+
+                // Check if it is the highest peak in the time window
+                if (current > max) {
+                    max = current;
+                    peakLoc = startIndex + i;
+                }
+            }
+            if (counter >= 185 && counter <= 209) {
+                Log.d("whathappen","" + i + "," + String.format("%.2f,%.2f,%.2f,%.2f,%d", max, previous, current, next, peakLoc));
+            }
+            i++;
+            previous = current;
+            current = next;
         }
 
-        //int peak1 = 15, peak2 = 42;
-        //if (true) {
-        //    calculateAutocorrelation(peak1,peak2);
-        //}
+        Log.d("Peak detected" , counter + "," + peakLoc + "," + String.format("%.2f", max) +"," + startIndex + "," + endIndex );
+        return peakLoc;
+
     }
+
 
     /* Return indices of peaks found in a LinkedList */
     private List<Integer> findPeaks(LinkedList<Double> a) {
@@ -120,12 +228,12 @@ public class AutoCorrelation2 {
             max = 0;
 
             // If end of signal has been reached, returned the found peaks
-            if ((peakLoc + delta + windowSize + 2) >= a.size()) {
+            if ((peakLoc + delta) >= a.size()) {
                 return indices;
             }
 
-            i = peakLoc + delta;     // Minimal possible index for new peak
-            endWindow = i + windowSize;   // Maximum possible index for new peak
+            i = peakLoc + delta;                                  // Minimal possible index for new peak
+            endWindow = Math.min(i + windowSize, a.size() - 1);   // Maximum possible index for new peak
 
         }
         return indices;
@@ -135,18 +243,17 @@ public class AutoCorrelation2 {
 
 
     // Peak 1 should come before peak 2
-    private void calculateAutocorrelation(int peak1, int peak2) {
-
+    private boolean calculateAutocorrelation(int peak1, int peak2) {
+        int samplesBetweenPeaks = peak2 - peak1;
         // Separate out f and g
-        double f[] = new double[windowSize];
-        double g[] = new double[windowSize];
+        double f[] = new double[peakWindow];
+        double g[] = new double[peakWindow];
 
-        // TODO  ik geloof dat start en eind indices hier niet in alle situaties evenver uit elkaar liggen voor f en g
         // Get starting and ending indices
         int fstart = peak1 - offsetL < 0 ? 0 : peak1 - offsetL;
-        int fend = peak1 + offsetR >= smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() - 1 : peak1 + offsetR;
+        int fend = peak1 + offsetR > smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() : peak1 + offsetR;
         int gstart = peak2 - offsetL < 0 ? 0 : peak2 - offsetL;
-        int gend = peak2 + offsetR >= smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() - 1 : peak2 + offsetR;
+        int gend = peak2 + offsetR > smoothMagnitudeHistory.size() ? smoothMagnitudeHistory.size() : peak2 + offsetR;
 
         // Iterate through the list and extract values to f and g
         ListIterator<Double> it = smoothMagnitudeHistory.listIterator(fstart);
@@ -167,44 +274,78 @@ public class AutoCorrelation2 {
         double fsd = sd(f, fmean);
         double gsd = sd(g, gmean);
 
-        // Turn f and g into f' and g' by subtracting the mean
-        // NOTE: f and g are equal length
-        for (int i = 0; i < f.length; i++) {
-            f[i] = f[i] - fmean;
-            g[i] = g[i] - gmean;
+        // Don't use STILL data as it gives very bad things!
+        if (fsd < StepDetector.STANDARD_DEV_WALKING_THRESHOLD || gsd < StepDetector.STANDARD_DEV_WALKING_THRESHOLD ) {
+            return false;
         }
 
+        // Turn f and g into f' and g' by subtracting the mean
+        //for (int i = 0; i < f.length; i++) {
+        //    f[i] = f[i] - fmean;
+        //}
+        //for (int i = 0; i < g.length; i++) {
+        //    g[i] = g[i] - gmean;
+        //}
+
+
         // Find the optimal autocorrelation
-        correlation = getOptimalAutocorrelation(f, g, fsd, gsd);
+        double new_correlation = getOptimalAutocorrelation(f, g, fsd, gsd, samplesBetweenPeaks);
 
-        // Get corresponding timewindow
-        int samplesBetween = (peak2 - peak1) // time between peaks
-                - (g.length - optimalI - 1);
+        if (new_correlation == 0)
+            return false;
 
-        optimalTimeWindow = samplesBetween * 20; // Samples times 20 ms
-        setListSize();
+        correlation = new_correlation;
+
+        // Get corresponding timewindow if correlation is high enough
+        if (correlation >= StepDetector.CORRELATION_WALKING_THRESHOLD) {
+            optimalSamplesBetween = samplesBetweenPeaks - peakWindow + optimalI + 1;
+            optimalTimeWindow = optimalSamplesBetween * 20; // Samples times 20 ms
+            Log.d("OPTIMALTIMEWINDOW", counter + "," + optimalTimeWindow);
+            setListSize();
+            return true;
+        }
+        // time window weer terugzetten als lang niet gevonden wordt?
+
+        // even voor het checken TODO maak dit weer false
+        return true;
     }
 
     int optimalI = -1;
     /* Shift g over f and try to find the optimal autocorrelation */
-    private double getOptimalAutocorrelation(double f[], double g[], double fsd, double gsd) {
-        double optimalCorrelation = Double.MIN_VALUE;
+    private double getOptimalAutocorrelation(double f[], double g[], double fsd, double gsd, int samplesBetweenPeaks) {
+        double optimalCorrelation = 0;
         double val;
-        // Calculate start and end indices
-        int startIndex = optimalI < certaintySampleWindow ? 0 : optimalI - certaintySampleWindow;
-        int endIndex = optimalI == -1 || optimalI + certaintySampleWindow > g.length * 2 - 1 ? g.length * 2 - 1 : optimalI + certaintySampleWindow;
 
-        // TODO check if this for loop can be decreased if the optimal time window is known
+        // Calculate i for optimalSamplesBetween
+        int optI = optimalSamplesBetween - samplesBetweenPeaks + peakWindow - 1;
+        // Start and end of certainty window
+        int startIndex, endIndex;
+        if (optimalI == -1) {
+            // First time, take full bounds
+            startIndex = 0;
+            endIndex = windowSize * 2 - 1;
+        } else {
+            startIndex = optI < certaintySampleWindow ? 0 : optI - certaintySampleWindow;
+            endIndex = optI + certaintySampleWindow > peakWindow * 2 - 1 ? peakWindow * 2 - 1 : optI + certaintySampleWindow;
+        }
+
+        // Bound the indices by the minSampleWindow, maxSampleWindow
+        int minI = minSampleWindow - samplesBetweenPeaks + peakWindow - 1;
+        int maxI = maxSampleWindow - samplesBetweenPeaks + peakWindow - 1;
+        startIndex = startIndex < minI ? minI : startIndex;
+        endIndex   = endIndex   > maxI ? maxI : endIndex;
+
+
         for (int i = startIndex; i < endIndex; i++) {
             val = getAutocorrelation(f, g, fsd, gsd
-                    ,-g.length + i + 1 < 0 ? 0 :-g.length + i + 1
-                    , g.length - i - 1 < 0 ? 0 : g.length - i - 1);
+                    ,-peakWindow + i + 1 < 0 ? 0 :-peakWindow + i + 1   // fi
+                    , peakWindow - i - 1 < 0 ? 0 : peakWindow - i - 1); // gi
             if (val > optimalCorrelation) {
                 optimalCorrelation = val;
                 optimalI = i;
             }
         }
-
+        Log.d("autocorr functie", counter + "," + String.format("%.2f", optimalCorrelation));
         return optimalCorrelation;
     }
 
@@ -213,15 +354,39 @@ public class AutoCorrelation2 {
         double result = 0;
         int overlap = fi == 0 ? g.length - gi : f.length - fi;
 
+        double sumf = 0;
+        double sumg = 0;
+        double meanf = 0;
+        double meang = 0;
+
+        // Compute stdev
+
         for (int i = 0; i < overlap; i++) {
+            meanf += f[fi+i];
+            meang += g[gi+i];
+        }
+        meanf /= overlap;
+        meang /= overlap;
+
+        for (int i =0; i < overlap; i++) {
+            f[fi+i] -= meanf;
+            sumf += Math.pow(f[fi+i],2);
+            g[gi+i] -= meang;
+            sumg += Math.pow(g[gi+i],2);
             result += f[fi + i] * g[gi + i];
         }
+
+        result /= overlap; // dit zou (biased) expectation value zijn van (Xf - muf)(Xg - mug) als het goed is. Nu nog delen door de varianties.
+
+        // standard afwijkingen:
+        fsd = sumf /overlap;
+        gsd = sumg /overlap;
 
         // Divide by the standard deviations
         result /= fsd * gsd;
 
         // Normalize and return
-        return result / overlap;
+        return result;
     }
 
     private double getAverage(LinkedList<Double> list) {
@@ -257,7 +422,10 @@ public class AutoCorrelation2 {
         return Math.sqrt( sum / a.length );
     }
 
+    /* Set nr of samples needed to calculate autocorrelation */
     private void setListSize() {
-        listSize = 3 * optimalTimeWindow / msPerSample;
+        listSize = 5 * optimalTimeWindow / msPerSample;
+        if (listSize < minListSize)
+            listSize = minListSize;
     }
 }

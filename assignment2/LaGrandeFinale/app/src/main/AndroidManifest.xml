@@ -20,6 +20,7 @@
         </activity>
         <activity
             android:name=".MagneticMeasurerActivity"
+            android:screenOrientation="landscape"
             android:theme="@style/AppTheme" />
         <activity
             android:name=".DistanceActivity"
@@ -31,6 +32,8 @@
         <activity
             android:name=".AccelerationMeasure"
             android:theme="@style/AppTheme" />
+        <activity android:name=".VelocityActivity"
+            android:theme="@style/AppTheme"></activity>
         <activity
             android:name=".LengthActivity"
             android:theme="@style/AppTheme" />
