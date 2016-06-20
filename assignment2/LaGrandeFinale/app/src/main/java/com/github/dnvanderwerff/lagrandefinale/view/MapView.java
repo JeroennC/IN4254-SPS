@@ -132,6 +132,7 @@ public class MapView extends SurfaceView implements SurfaceHolder.Callback {
         String ctxt;
         Cell[] cells = collisionMap.getCells();
         paint.setTextAlign(Paint.Align.CENTER);
+
         for (Cell c : cells) {
             paint.setStyle(Paint.Style.STROKE);
             canvas.drawRect(
