@@ -55,7 +55,6 @@ def predictCells(measurement):
       cellDist[cells[i]] += probs[0][i]
       sum += probs[0][i]
       
-    
   # Normalize
   for i in xrange(0, 19):
     cellDist[i] /= sum
@@ -93,7 +92,7 @@ def reset():
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
-server_address = ('localhost', 10000)
+server_address = ('0.0.0.0', 10000)
 print >>sys.stderr, 'starting up on %s port %s' % server_address
 sock.bind(server_address)
 
