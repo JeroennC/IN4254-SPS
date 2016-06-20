@@ -5,7 +5,7 @@ package com.github.dnvanderwerff.lagrandefinale.particle;
  */
 public class Cluster {
 
-    public double x, y; // x and y coordinates of cluster centre
+    public double x, y; // x and y coordinates of cluster centre in meters
 
 
     public Cluster(double xCoord, double yCoord) {

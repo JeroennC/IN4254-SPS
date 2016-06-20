@@ -30,6 +30,8 @@ public class ParticleController {
     private NormalDistribution ndCluster;                    // Normal distribution for placing particles in recovered cluster
     private static int MAX_RECOVERED_CLUSTERS = 3;           // Max nr of clusters that will be revived when all particles are gone
     private static int MAX_DEAD_CLUSTERS = 5;                // Max nr of dead clusters program keeps track of
+    private static double DELTA_CLUSTER_CENTRES = 0.5;       // Distance that two clusters centres can differ while being
+                                                             // seen as same cluster (used for cluster tracking) ?in meters?
 
     public double getSurface() { return surface; }
     public double getSurfaceFraction() { return surface / totalSurface; }
@@ -123,8 +125,6 @@ public class ParticleController {
                     maxY = p.y;
             }
         }
-        //long moved = System.currentTimeMillis();
-
 
         // Reposition dead particles
         // But not if there are none alive
@@ -136,6 +136,19 @@ public class ParticleController {
             }
         }
 
+        // Move dead clusters
+        for (Cluster c : deadClusters) {
+            // Get step size
+            stepSize = ndStepSize.nextValue();
+
+            // Offset given direction by random value
+            newDirection = directionRadians + ndDirection.nextValue();
+
+            // Change particle position
+            c.x += -Math.sin(newDirection) * stepSize;
+            c.y += -Math.cos(newDirection) * stepSize;
+        }
+
         // Find current clusters
         currentClusters = findCluster(alives);
 
@@ -143,36 +156,55 @@ public class ParticleController {
         String current = "";
         String previous = "";
         for (int i = 0; i < currentClusters.size(); i++) {
-            current += map.getCell(currentClusters.get(i).x,currentClusters.get(i).y);
+            current += String.format("%d, ", map.getCell(currentClusters.get(i).x,currentClusters.get(i).y));
         }
         for (int i = 0; i < previousClusters.size(); i++) {
-            previous += map.getCell(previousClusters.get(i).x, previousClusters.get(i).y);
+            //previous += map.getCell(previousClusters.get(i).x, previousClusters.get(i).y) + ",";
+            previous += previousClusters.get(i).x + "," + previousClusters.get(i).y;
         }
-        Log.d("previous", "Previous clusters: " + previous);
-        Log.d("current","Current clusters: " + current);
+        Log.d("previous", previousClusters.size() + " previous clusters: " + previous);
+        Log.d("current", currentClusters.size() + " current clusters: " + current);
 
         // Compare with previous clusters to find deceased clusters
-        for (Cluster prev : previousClusters) {
+        for (Cluster prev: previousClusters) {
+            boolean deceased = true;
 
-            if (! currentClusters.contains(prev)) {
+            for (Cluster curr : currentClusters) {
+
+                if (matchingCluster(prev,curr)) {
+                    // Prev cluster is still present
+                    deceased = false;
+                    break;
+                }
+            }
+
+            if (deceased) {
+                // Prev cluster is dead, add it to deadClusters
                 deadClusters.addFirst(prev);
                 if (deadClusters.size() > MAX_DEAD_CLUSTERS) {
                     deadClusters.removeLast();
                 }
             }
+
         }
-        Log.d("Dead", "Dead clusters: " + String.format(deadClusters.toString()));
+
+        // Logging
+        String dead = "";
+        for (int i = 0; i < deadClusters.size(); i++) {
+            dead += map.getCell(deadClusters.get(i).x, deadClusters.get(i).y) + ",";
+        }
+        Log.d("Dead", deadClusters.size() + " dead clusters: " + dead);
 
         previousClusters = currentClusters;
 
+        // Check if all particles are dead; if so, recover
         if (alives.size() == 0) {
-            // At this point, the system needs to recover, as the cluster of particles is in the wrong location.. what is this called again?
 
             int toRecover = Math.min(deadClusters.size(), MAX_RECOVERED_CLUSTERS);
-            int n = particles.length / toRecover;
+            int n = (toRecover != 0) ? particles.length / toRecover : 0;   // Nr of particles to be recovered per cluster
 
             for (int i = 0; i < toRecover; i++) {
-                placeParticles(deadClusters.get(i), n);
+                recoverCluster(deadClusters.get(i), n);
             }
 
         }
@@ -216,24 +248,25 @@ public class ParticleController {
 
         List<Cluster> foundClusters = new ArrayList<Cluster>();
 
-        double threshold = particles.size() / 3.0;    // TODO check of dit goede waarde is
-        double x, y;
+        double threshold = particles.size() / 6;    // TODO check of dit goede waarde is
+        double x, y;        // in meters
 
         // TODO getCells has length of 18, while there are 21 cells.. Solve this by modifying MapView and CollisionMap.
         for (int i = 0; i < map.getCells().length; i++) {
             if (cellDist[i] >= threshold) {
                 // There is probably a cluster in the cell. Store center of cell as estimation of cluster centre.
-                x = (map.getCells())[i].x;
-                y = (map.getCells())[i].y;
+                x = (map.getCells())[i].getXCentre();
+                y = (map.getCells())[i].getYCentre();
                 foundClusters.add(new Cluster(x,y));
+                Log.d("Found",String.format("Cluster found at x: %f, y: %f in cell : %d",x,y,(map.getCells())[i].cellNo));
             }
         }
 
         return foundClusters;
     }
 
-    /* Place n particles around cluster centre */
-    public void placeParticles(Cluster cluster, int n) {
+    /* Recover cluster by placing n particles around cluster centre */
+    public void recoverCluster(Cluster cluster, int n) {
 
         // Place n particles on the map around provided cluster centre
         for (int i = 0; i < n && deads.size() > 0; i++) {
@@ -252,6 +285,18 @@ public class ParticleController {
         // TODO update minX and minY to calculate surface
         // TODO indicate what the new dominating cells are
 
+    }
+
+    /* Check if two clusters are actually the same cluster (ie approximately equal cluster centres) */
+    public boolean matchingCluster(Cluster a, Cluster b) {
+        boolean match = false;
+
+        if (Math.abs(a.x - b.x) < DELTA_CLUSTER_CENTRES) {
+            if (Math.abs(a.y - b.y) < DELTA_CLUSTER_CENTRES) {
+                match = true;
+            }
+        }
+        return match;
     }
 
 }
