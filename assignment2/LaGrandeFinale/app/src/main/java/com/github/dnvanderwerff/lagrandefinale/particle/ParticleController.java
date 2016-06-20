@@ -16,6 +16,7 @@ import java.util.StringTokenizer;
  * Created by Jeroen on 21/05/2016.
  */
 public class ParticleController {
+
     private CollisionMap map;                               // The collision map
     private Particle[] particles;                           // Array of all particles within the map
     private NormalDistribution ndDirection, ndStepSize;     // Distribution from which to obtain direction and step sizes
@@ -33,13 +34,16 @@ public class ParticleController {
     private static double DELTA_CLUSTER_CENTRES = 0.5;       // Distance that two clusters centres can differ while being
                                                              // seen as same cluster (used for cluster tracking) ?in meters?
 
+
     public double getSurface() { return surface; }
     public double getSurfaceFraction() { return surface / totalSurface; }
 
     public ParticleController(CollisionMap map) {
         this.map = map;
+
         ndDirection = new NormalDistribution(0, Math.toRadians(13));
         ndStepSize = new NormalDistribution(MainActivity.length*0.41, 0.15);    // in meters
+        
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
@@ -83,7 +87,7 @@ public class ParticleController {
     }
 
     /* Moves all particles */
-    public void move(double directionRadians) {
+    public void move(double directionRadians, NormalDistribution ndDirection) {
         //long begin = System.currentTimeMillis();
         alives.clear();
         deads.clear();
@@ -104,7 +108,7 @@ public class ParticleController {
             newDirection = directionRadians + ndDirection.nextValue();
 
             // Change particle position
-            p.x += -Math.sin(newDirection) * stepSize;
+            p.x += Math.sin(newDirection) * stepSize;
             p.y += -Math.cos(newDirection) * stepSize;
 
             cell = map.getCell(p.x, p.y);

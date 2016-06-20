@@ -15,6 +15,14 @@ public class NormalDistribution {
         r = new Random(System.nanoTime());
     }
 
+    public void setMean(double val) {
+        mean = val;
+    }
+
+    public void setStandardDev(double val) {
+        sd = val;
+    }
+
     public double nextValue() {
         double val = r.nextGaussian();
         val *= sd;
