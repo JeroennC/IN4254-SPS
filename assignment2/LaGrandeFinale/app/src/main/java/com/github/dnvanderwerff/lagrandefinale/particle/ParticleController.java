@@ -19,7 +19,7 @@ public class ParticleController {
 
     private CollisionMap map;                               // The collision map
     private Particle[] particles;                           // Array of all particles within the map
-    private NormalDistribution ndDirection, ndStepSize;     // Distribution from which to obtain direction and step sizes
+    private NormalDistribution ndStepSize;                  // Distribution from which to obtain step sizes
     private List<Particle> alives, deads;                   // List of dead and living particles
     private Random r;                                       // Random variable
     private double surface, totalSurface;                   // Surface of location where the user is most likely to be, and total surface
@@ -30,10 +30,12 @@ public class ParticleController {
     private LinkedList<Cluster> deadClusters;                // Sorted list of most recently deceased clusters
     private NormalDistribution ndCluster;                    // Normal distribution for placing particles in recovered cluster
     private static int MAX_RECOVERED_CLUSTERS = 3;           // Max nr of clusters that will be revived when all particles are gone
-    private static int MAX_DEAD_CLUSTERS = 5;                // Max nr of dead clusters program keeps track of
-    private static double DELTA_CLUSTER_CENTRES = 0.5;       // Distance that two clusters centres can differ while being
-                                                             // seen as same cluster (used for cluster tracking) ?in meters?
-
+    private static int MAX_DEAD_CLUSTERS = 3;                // Max nr of dead clusters program keeps track of
+    private static double DELTA_CLUSTER_CENTRES = MainActivity.length*0.41;       // Distance that two clusters centres can differ while being
+                                                             // seen as same cluster (used for cluster tracking) in meters
+    private static double CLUSTER_RADIUS = 1.5;              // in meters
+    private int CLUSTER_PARTICLES_THRESHOLD;                 // Min nr of particles in possible cluster to classify it as an actual cluster
+    private List<Cluster> possibleClusters;
 
     public double getSurface() { return surface; }
     public double getSurfaceFraction() { return surface / totalSurface; }
@@ -41,18 +43,19 @@ public class ParticleController {
     public ParticleController(CollisionMap map) {
         this.map = map;
 
-        ndDirection = new NormalDistribution(0, Math.toRadians(13));
+        //ndDirection = new NormalDistribution(0, Math.toRadians(13));
         ndStepSize = new NormalDistribution(MainActivity.length*0.41, 0.15);    // in meters
-        
+
         alives = new ArrayList<>();
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
         cellDist = new int[map.getCellCount() ];
 
+        possibleClusters = new ArrayList<Cluster>();
         previousClusters = new ArrayList<Cluster>();
         currentClusters = new ArrayList<Cluster>();
         deadClusters = new LinkedList<Cluster>();
-        ndCluster = new NormalDistribution(0,0.5);  // TODO test of deze sd wel een handige waarde is
+        ndCluster = new NormalDistribution(0,0.8);  // TODO test of deze sd wel een handige waarde is
 
         surface = 0;
 
@@ -63,6 +66,8 @@ public class ParticleController {
     public void initialize(int particleAmount) {
         particles = new Particle[particleAmount];
         Random r = new Random(System.nanoTime());
+        CLUSTER_PARTICLES_THRESHOLD = particles.length / 10;
+
         double x, y;
         double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
         for (int i = 0; i < particleAmount; i++) {
@@ -88,9 +93,11 @@ public class ParticleController {
 
     /* Moves all particles */
     public void move(double directionRadians, NormalDistribution ndDirection) {
-        //long begin = System.currentTimeMillis();
+
         alives.clear();
         deads.clear();
+        possibleClusters.clear();
+
         double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
         double stepSize;
         double newDirection;
@@ -112,12 +119,16 @@ public class ParticleController {
             p.y += -Math.cos(newDirection) * stepSize;
 
             cell = map.getCell(p.x, p.y);
+
             if (cell == 0) {
+                // Cell is dead
                 deads.add(p);
             } else {
+                // Cell is alive
                 alives.add(p);
                 cellDist[cell] += 1;
-                // If alive, update boundaries if needed
+
+                // Update boundaries if needed
                 if (p.x < minX)
                     minX = p.x;
                 else if (p.x > maxX)
@@ -139,6 +150,70 @@ public class ParticleController {
                 particle.y = dest.y;
             }
         }
+
+        // Use particle location to find clusters
+        for (Particle p : particles) {
+            if (possibleClusters.size() == 0) {
+                possibleClusters.add(new Cluster(p.x, p.y));
+            } else {
+                boolean found = false;
+                for (Cluster c : possibleClusters) {
+                    if (Math.abs(c.x - p.x) < CLUSTER_RADIUS && Math.abs(c.y - p.y) < CLUSTER_RADIUS) {
+                        // Newly placed particle is close enough to cluster radius
+                        // Add particle to possible cluster and update weighted centre
+                        c.nrParticles++;
+                        c.x = ((c.nrParticles - 1) * c.x + p.x) / c.nrParticles;
+                        c.y = ((c.nrParticles - 1) * c.y + p.y) / c.nrParticles;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    // Add newly placed particle as a new possible location of a cluster
+                    possibleClusters.add(new Cluster(p.x, p.y));
+                }
+            }
+        }
+
+        // Merge clusters if they are close together
+        for (int i = 0; i < possibleClusters.size(); i++) {
+            for (int j = i + 1; j < possibleClusters.size(); j++) {
+                Cluster a = possibleClusters.get(i);
+                Cluster b = possibleClusters.get(j);
+
+                if (Math.abs(a.x - b.x) < DELTA_CLUSTER_CENTRES &&
+                            Math.abs(a.y - b.y) < DELTA_CLUSTER_CENTRES) {
+                    // Merge clusters a and b
+                    a.x = (a.nrParticles * a.x + b.nrParticles * b.x) / (a.nrParticles + b.nrParticles);
+                    a.y = (a.nrParticles * a.y + b.nrParticles * b.y) / (a.nrParticles + b.nrParticles);
+                    a.nrParticles += b.nrParticles;
+
+                    // Remove cluster b from previousClusters and possibleClusters
+                    for (int k = 0; k < previousClusters.size(); k++) {
+                        Cluster prev = previousClusters.get(k);
+                        if (Math.abs(prev.x - b.x) < DELTA_CLUSTER_CENTRES &&
+                                Math.abs(prev.y - b.y) < DELTA_CLUSTER_CENTRES) {
+                            previousClusters.remove(k);
+                            break;
+                        }
+                    }
+                    possibleClusters.remove(j);
+                } /*else {
+                    // Dit is gecomment omdat de app anders erg traag lijkt te reageren
+
+                    // If multiple clusters indicated in same cell, but they cannot be merged,
+                    // large likelihood that it's a smeared out collection of particles.
+                    // Don't detect this as a cluster, since it is not at all converged
+                    if ((map.getCell(a.x,a.y)) == map.getCell(b.x, b.y)) {
+                        possibleClusters.remove(i);
+                        possibleClusters.remove(j - 1);
+                    }
+                }*/
+
+            }
+        }
+
+
 
         // Move dead clusters
         for (Cluster c : deadClusters) {
@@ -240,29 +315,15 @@ public class ParticleController {
     }
 
 
-    // TODO IMPLEMENT THIS FUNCTION CORRECTLY.
-    //
-    // TODO FIRST, TRY SOMETHING EASY: RIGHT NOW IT JUST ASSUMES CENTRE OF THE CELL IN WHICH THE CLUSTER IS LOCATED.
-    // TODO (this will not work if cluster is right in the middle of two cells for example.)
-    //
-    // TODO I don't really understand the x and y values that are returned from the cells in the map.getCells array.. Not what I expect them to be.
-    // TODO so currently recovery does not result in a new cluster at the correct location
     public List<Cluster> findCluster(List<Particle> particles) {
         // Use cellDistr to get an estimation of where clusters are, then compute actual centres.
 
         List<Cluster> foundClusters = new ArrayList<Cluster>();
 
-        double threshold = particles.size() / 6;    // TODO check of dit goede waarde is
-        double x, y;        // in meters
-
-        // TODO getCells has length of 18, while there are 21 cells.. Solve this by modifying MapView and CollisionMap.
-        for (int i = 0; i < map.getCells().length; i++) {
-            if (cellDist[i] >= threshold) {
-                // There is probably a cluster in the cell. Store center of cell as estimation of cluster centre.
-                x = (map.getCells())[i].getXCentre();
-                y = (map.getCells())[i].getYCentre();
-                foundClusters.add(new Cluster(x,y));
-                Log.d("Found",String.format("Cluster found at x: %f, y: %f in cell : %d",x,y,(map.getCells())[i].cellNo));
+        for (Cluster c : possibleClusters) {
+            if (c.nrParticles > CLUSTER_PARTICLES_THRESHOLD) {
+                foundClusters.add(new Cluster(c.x, c.y));
+                Log.d("Found",String.format("Cluster found at x: %f, y: %f in cell : %d",c.x,c.y,map.getCell(c.x,c.y)));
             }
         }
 
