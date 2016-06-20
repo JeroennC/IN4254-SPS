@@ -1,7 +1,29 @@
 import socket
 import sys
 import json
+import struct
 
+# Socket protocol
+def send_message(sock, data):
+  l = len(data)
+  sock.sendall(struct.pack('!I', l))
+  sock.sendall(data)
+  
+def recv_message(sock):
+  lbuf = recv_all(sock, 4)
+  if not lbuf:
+    return lbuf
+  l, = struct.unpack('!I', lbuf)
+  return recv_all(sock, l)
+  
+def recv_all(sock, count):
+  buf = b''
+  while count:
+    newbuf = sock.recv(count)
+    if not newbuf: return None
+    buf += newbuf
+    count -= len(newbuf)
+  return buf
 
 
 f = open('wifimeasurements.dat', 'r');
@@ -24,8 +46,8 @@ sock.connect(server_address)
 try:
   # Reset server
   reset = {'type': 'reset'}
-  sock.sendall(json.dumps(reset))
-  data = sock.recv(1024)
+  send_message(sock, json.dumps(reset))
+  data = recv_message(sock)
   print >>sys.stderr, 'received "%s"' % data
     
   for i in xrange(0, len(measurements)):
@@ -33,9 +55,9 @@ try:
     measurement['cell'] = [measurement['cell']]
     measurement['type'] = 'store'
     
-    sock.sendall(json.dumps(measurement))
+    send_message(sock, json.dumps(measurement))
     
-    data = sock.recv(1024)
+    data = recv_message(sock)
     
     print >>sys.stderr, 'received "%s"' % data
     
@@ -46,9 +68,9 @@ try:
     measurement['cell'] = [measurement['cell']]
     measurement['type'] = 'predict'
     
-    sock.sendall(json.dumps(measurement))
+    send_message(sock, json.dumps(measurement))
     
-    data = sock.recv(1024)
+    data = recv_message(sock)
     
     print >>sys.stderr, 'received "%s"' % data
     print measurement['cell']
