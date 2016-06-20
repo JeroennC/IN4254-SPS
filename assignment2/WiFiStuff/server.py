@@ -1,6 +1,7 @@
 import socket
 import sys
 import json
+import struct
 from sklearn import svm
 from sklearn.linear_model import perceptron
 from random import shuffle
@@ -87,6 +88,27 @@ def reset():
   print "Reset everything"
   return
   
+# Socket protocol
+def send_message(sock, data):
+  l = len(data)
+  sock.sendall(struct.pack('!I', l))
+  sock.sendall(data)
+  
+def recv_message(sock):
+  lbuf = recv_all(sock, 4)
+  if not lbuf:
+    return lbuf
+  l, = struct.unpack('!I', lbuf)
+  return recv_all(sock, l)
+  
+def recv_all(sock, count):
+  buf = b''
+  while count:
+    newbuf = sock.recv(count)
+    if not newbuf: return None
+    buf += newbuf
+    count -= len(newbuf)
+  return buf
     
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -109,7 +131,7 @@ while True:
 
         # Receive the data in small chunks and retransmit it
         while True:
-            data = connection.recv(8192)
+            data = recv_message(connection)
             
             if not data:
               break
@@ -119,16 +141,16 @@ while True:
             if measurement['type'] == 'store':
               # Store
               storeData(measurement)
-              connection.sendall("Measurement stored")
+              send_message(connection, "Measurement stored")
             elif measurement['type'] == 'predict':
               # Predict
               prediction = predictCells(measurement)
-              connection.sendall(str(prediction))
+              send_message(connection, str(prediction))
             elif measurement['type'] == 'reset':
               reset()
-              connection.sendall("Classifiers reset")
+              send_message(connection, "Classifiers reset")
             else:
-              connection.sendall("Unknown request")
+              send_message(connection, "Unknown request")
             
     finally:
         # Clean up the connection
