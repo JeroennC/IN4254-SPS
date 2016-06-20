@@ -24,12 +24,14 @@ public class AutoCorrelation {
     public static final double WALKING_THRESHOLD = 0.7;
     private static final int tWindowTailSize = 20; // Distance from optimal tau that is checked
     private List<Double> accData;   // Smoothed accelerator signal
+    private List<Double> calcData;  // Data that is used to calculate the auto correlation
     private LinkedList<Double> rawAccData;   // Raw accelerator signal
     public State currentState;      // Activity state of user
     public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
     public double autocorr;
     private double maxMagnitudeThreshold; // Is a threshold for the maximum magnitude, to ignore big sudden values
     public int lowT = tMin, highT = tMax;
+    private double[] storedData; // Contains the last walk signal
 
 
     public enum State {
@@ -55,6 +57,7 @@ public class AutoCorrelation {
     /* Constructor */
     public AutoCorrelation(List<Double> accData) {
         this.accData = accData;
+        this.calcData = new ArrayList<>();
         this.rawAccData = new LinkedList<>();
         this.optPeriod = 30;
         this.currentState = State.STILL;
@@ -93,10 +96,12 @@ public class AutoCorrelation {
             if (res.max > WALKING_THRESHOLD) {
                 this.currentState = State.WALKING;
                 this.optPeriod = res.period;
-                this.lowT = this.optPeriod - this.tWindowTailSize < tMin ? tMin : this.optPeriod - this.tWindowTailSize;
+                this.lowT  = this.optPeriod - this.tWindowTailSize < tMin ? tMin : this.optPeriod - this.tWindowTailSize;
                 this.highT = this.optPeriod + this.tWindowTailSize > tMax ? tMax : this.optPeriod + this.tWindowTailSize;
                 // Update max magnitude
                 this.maxMagnitudeThreshold = res.maxMagnitude * 4; // 4 is just a choice.. maybe needs to be adapted
+                // Store the most recent walk signal
+                storeSignal();
             } else {
                 this.currentState = State.STILL;
             }
@@ -108,16 +113,16 @@ public class AutoCorrelation {
     /* Compute normalized auto-correlation X(m,tau) of accData for sample m and lag tau */
     public double X(int m, int tau) {
         double X = 0;
-        double mu1 = mean(m, tau);
-        double mu2 = mean(m+tau, tau);
+        double mu1 = mean(calcData, m, tau);
+        double mu2 = mean(calcData, m+tau, tau);
 
 
         for (int k = 0; k < tau; k++) {
-            X += (accData.get(m+k) - mu1) * (accData.get(m+k+tau) - mu2);
+            X += (calcData.get(m+k) - mu1) * (calcData.get(m+k+tau) - mu2);
         }
 
-        double sd1 = sd(m, tau);
-        double sd2 = sd(m + tau, tau);
+        double sd1 = sd(calcData, m, tau);
+        double sd2 = sd(calcData, m + tau, tau);
 
         // Check if samples have high enough standard deviation
         if (sd1 < StepDetector.STANDARD_DEV_WALKING_THRESHOLD || sd2 < StepDetector.STANDARD_DEV_WALKING_THRESHOLD)
@@ -137,16 +142,42 @@ public class AutoCorrelation {
         int size = this.accData.size();
         int currentM = size - 1 - tauMin * 2;
 
-        // Check the max value being used
+        // The mean of the left half
+        double sum = 0;
+        int cnt = 0;
+        for (int i = size - 1 - tauMax * 2; i < size - tauMax; i++, cnt++) {
+            sum += accData.get(i);
+        }
+        double mu = sum / cnt;
+
+        // Check the max value being used, and the standard deviation of the left half
         double maxMagnitude = Double.MIN_VALUE;
         double val;
+        sum = 0;
         for (int i = size - 1 - tauMax * 2; i < size; i++) {
             val = accData.get(i);
+            calcData.add(val);
             maxMagnitude = val > maxMagnitude ? val : maxMagnitude;
+            // Get stdev of left half
+            if (i < size - tauMax)
+                sum += Math.pow(val - mu, 2);
         }
+
         // If above threshold never mind
         if (maxMagnitude > maxMagnitudeThreshold)
             return new Result(0, -1, maxMagnitude);
+
+        // If the left half standard deviation is too low, replace by the stored step if available
+        double sd = Math.sqrt(sum / cnt);
+
+        if (storedData != null && sd < StepDetector.STANDARD_DEV_WALKING_THRESHOLD) {
+            Log.d("TEST", "Using stored data");
+            for (int i = 0; i < highT; i++)
+                calcData.set(i, storedData[i]);
+        }
+
+        // Recalculate currentM for calcData
+        currentM = calcData.size() - 1 - tauMin * 2;
 
         for (int t = tauMin; t <= tauMax; t++, currentM -= 2) {
             double x = X(currentM, t);
@@ -162,10 +193,9 @@ public class AutoCorrelation {
 
 
     /* Compute standard deviation of samples k to k + l-1 of a list */
-    private double sd (int k, int l){
+    private double sd (List<Double> a, int k, int l){
         double sum = 0;
-        double mean = mean(k, l);
-        List<Double> a = this.accData;
+        double mean = mean(a, k, l);
 
         // Compute stdev
         for (int i = k; i < (k + l); i++) {
@@ -176,9 +206,8 @@ public class AutoCorrelation {
     }
 
     /* Compute mean of of samples k to k + l-1 of a list */
-    private double mean (int k, int l) {
+    private double mean (List<Double> a, int k, int l) {
         double mean = 0;
-        List<Double> a = this.accData;
 
         for (int i = k; i < (k + l); i++) {
             mean += a.get(i);
@@ -196,6 +225,18 @@ public class AutoCorrelation {
         }
 
         return val / list.size();
+    }
+
+    // Store the last highT amount of samples in the stored signal array;
+    private void storeSignal() {
+        int listOffset = accData.size() - 1 - highT; // Exactly highT values from startI to end
+
+        storedData = new double[highT];
+
+        for (int i = 0; i < highT; i++) {
+            storedData[i] = accData.get(i + listOffset);
+        }
+        Log.d("TEST", "Stored signal data");
     }
 
 
