@@ -14,6 +14,7 @@ import android.widget.TextView;
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
 import com.github.dnvanderwerff.lagrandefinale.util.DirectionExtractor;
+import com.github.dnvanderwerff.lagrandefinale.util.NormalDistribution;
 import com.github.dnvanderwerff.lagrandefinale.util.StepDetector;
 import com.github.dnvanderwerff.lagrandefinale.view.CompassView;
 import com.github.dnvanderwerff.lagrandefinale.view.MapView;
@@ -25,6 +26,13 @@ public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
     private final static int offsetDegreesBuildingMap =  -30;
     private final static float offsetRadianBuildingMap = (float)(Math.toRadians(offsetDegreesBuildingMap));
+
+    private final double
+                r90 = Math.PI / 2,
+                r45 = r90 / 2,
+                r180 = Math.PI,
+                r360 = Math.PI * 2;
+    private final double rBound = r90 * 4/9; // 40 deg
 
     private CollisionMap collisionMap;
     private ParticleController particleController;
@@ -40,8 +48,9 @@ public class MapActivity extends Activity {
     private StepDetector stepDetector;
 
     /* Variables */
-    private int degreeNorth = offsetDegreesBuildingMap + 90, degreeMe;
-    private float radianNorth = (float)(offsetRadianBuildingMap + 0.5 * Math.PI), radianMe;
+    private int degreeNorth, degreeMe;
+    private float radianNorth, radianMe;
+    private NormalDistribution ndDirection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +60,7 @@ public class MapActivity extends Activity {
         degreeView = (TextView) findViewById(R.id.currentDegrees);
         surfaceView = (TextView) findViewById(R.id.particleSurface);
         cellView = (TextView) findViewById(R.id.cellText);
+        ndDirection = new NormalDistribution(0,0);
 
         Intent intent = getIntent();
         int mapType = intent.getIntExtra(MAP_TYPE_MSG, CollisionMap.FLOOR9);
@@ -80,11 +90,42 @@ public class MapActivity extends Activity {
     public void doStep(View view) {
         Log.d("TimeStart", "" + System.currentTimeMillis());
         // Get direction
-        double directionRadians = radianMe;//radianNorth + offsetRadianBuildingMap;
+        double directionRadians = radianNorth + offsetRadianBuildingMap;
+        // Make sure it is in [0, 2pi]
+        directionRadians = (directionRadians + 2 * Math.PI) % (2 * Math.PI);
+
+        // Lock direction to nearest cardinal (from the buildings perspective)
+        double diff;
+        if (directionRadians < r45 || directionRadians > r360 - r45) {
+            diff = directionRadians < r45 ? directionRadians : directionRadians - r360;
+            directionRadians = 0;
+        } else if (directionRadians < r90 + r45) {
+            diff = directionRadians - r90;
+            directionRadians = r90;
+        } else if (directionRadians < r180 + r45) {
+            diff = directionRadians - r180;
+            directionRadians = r180;
+        } else {
+            diff = directionRadians - (r180 + r90);
+            directionRadians = r180 + r90;
+        }
+
+        // Maybe special cases for when the direction is near 45 deg off a cardinal?
+        if (Math.abs(diff) > rBound) {
+            if (diff > 0) {
+                directionRadians += r45;
+            } else {
+                directionRadians -= r45;
+            }
+        }
+
+        // Use standard deviation based on difference with cardinal
+        ndDirection.setStandardDev(diff * .75);
 
         stepDetector.pauseSensor();
         // Move particles
-        particleController.move(directionRadians);
+        particleController.move(directionRadians, ndDirection);
+
         stepDetector.resumeSensor();
 
         // Draw
@@ -93,7 +134,6 @@ public class MapActivity extends Activity {
         // Show surface
         cellView.setText(particleController.getActiveCell());
 
-        Log.d("TimeBetween", "" + System.currentTimeMillis());
         //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
@@ -101,10 +141,10 @@ public class MapActivity extends Activity {
     class updateCompassTask extends TimerTask {
         @Override
         public void run() {
-            //is now always constant degreeNorth = directionExtractor.getDegreeNorth();
-            //is now always constant radianNorth = directionExtractor.getRadianNorth();
-            degreeMe = 360 - (directionExtractor.getDegreeMe() + offsetDegreesBuildingMap);
-            radianMe = 2 * (float)Math.PI - (directionExtractor.getRadianMe() + offsetRadianBuildingMap);
+            degreeNorth = directionExtractor.getDegreeNorth();
+            radianNorth = directionExtractor.getRadianNorth();
+            degreeMe = directionExtractor.getDegreeMe();
+            radianMe = directionExtractor.getRadianMe();
 
             mHandler.obtainMessage(1).sendToTarget();
         }

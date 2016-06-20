@@ -16,7 +16,7 @@ import java.util.Random;
 public class ParticleController {
     private CollisionMap map;
     private Particle[] particles;
-    private NormalDistribution ndDirection, ndStepSize;
+    private NormalDistribution ndStepSize;
     private List<Particle> alives, deads;
     private Random r;
     private double surface, totalSurface;
@@ -28,8 +28,7 @@ public class ParticleController {
 
     public ParticleController(CollisionMap map) {
         this.map = map;
-        ndDirection = new NormalDistribution(0, Math.toRadians(13));
-        //ndStepSize = new NormalDistribution(0.7, 0.15);
+       // ndDirection = new NormalDistribution(0, Math.toRadians(13));
         ndStepSize = new NormalDistribution(MainActivity.length*0.41, 0.05);
         alives = new ArrayList<>();
         deads = new LinkedList<>();
@@ -69,7 +68,7 @@ public class ParticleController {
     }
 
     /* Moves all particles */
-    public void move(double directionRadians) {
+    public void move(double directionRadians, NormalDistribution ndDirection) {
         //long begin = System.currentTimeMillis();
         alives.clear();
         deads.clear();
@@ -90,7 +89,7 @@ public class ParticleController {
             newDirection = directionRadians + ndDirection.nextValue();
 
             // Change particle position
-            p.x += -Math.sin(newDirection) * stepSize;
+            p.x += Math.sin(newDirection) * stepSize;
             p.y += -Math.cos(newDirection) * stepSize;
 
             cell = map.getCell(p.x, p.y);

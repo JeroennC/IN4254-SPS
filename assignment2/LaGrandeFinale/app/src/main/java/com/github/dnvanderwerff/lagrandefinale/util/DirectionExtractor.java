@@ -113,8 +113,8 @@ public class DirectionExtractor implements SensorEventListener {
          /* Set Outputs */
         //radianNorth = accMagOrientation[0];
         //degreeNorth = (int)(Math.toDegrees(accMagOrientation[0])+360)%360;
-        radianMe = gyroOrientation[0] + (float)(0.5 * Math.PI); /* Plus .5PI for phone @ landscape */
-        degreeMe = (int)(Math.toDegrees(gyroOrientation[0])+360 + 90 /* Because of phone landscape */)%360;
+        radianNorth = gyroOrientation[0] + (float)(0.5 * Math.PI); /* Plus .5PI for phone @ landscape */
+        degreeNorth = (int)(Math.toDegrees(gyroOrientation[0])+360 + 90 /* Because of phone landscape */)%360;
     }
 
     // Use linear acceleration and the true north to deduce which direction the user is walking in
