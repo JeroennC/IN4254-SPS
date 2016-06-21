@@ -57,7 +57,7 @@ public class ParticleController {
         previousClusters = new ArrayList<Cluster>();
         currentClusters = new ArrayList<Cluster>();
         deadClusters = new LinkedList<Cluster>();
-        ndCluster = new NormalDistribution(0,0.8);  // TODO test of deze sd wel een handige waarde is
+        ndCluster = new NormalDistribution(0,0.8);
 
         surface = 0;
 
@@ -159,10 +159,10 @@ public class ParticleController {
             cell = map.getCell(p.x, p.y);
 
             if (cell == 0) {
-                // Cell is dead
+                // Particle is dead
                 deads.add(p);
             } else {
-                // Cell is alive
+                // Particle is alive
                 alives.add(p);
                 cellDist[cell] += 1;
 
@@ -177,81 +177,24 @@ public class ParticleController {
                 else if (p.y > maxY)
                     maxY = p.y;
             }
+
+            addPossibleCluster(p);
+
         }
 
         // Reposition dead particles
         // But not if there are none alive
         if (alives.size() > 0) {
-            for (Particle particle : deads) {
+            for (Particle p : deads) {
                 Particle dest = alives.get(r.nextInt(alives.size()));
-                particle.x = dest.x;
-                particle.y = dest.y;
+                p.x = dest.x;
+                p.y = dest.y;
+
+                addPossibleCluster(p);
             }
         }
 
-        // Use particle location to find clusters
-        for (Particle p : particles) {
-            if (possibleClusters.size() == 0) {
-                possibleClusters.add(new Cluster(p.x, p.y));
-            } else {
-                boolean found = false;
-                for (Cluster c : possibleClusters) {
-                    if (Math.abs(c.x - p.x) < CLUSTER_RADIUS && Math.abs(c.y - p.y) < CLUSTER_RADIUS) {
-                        // Newly placed particle is close enough to cluster radius
-                        // Add particle to possible cluster and update weighted centre
-                        c.nrParticles++;
-                        c.x = ((c.nrParticles - 1) * c.x + p.x) / c.nrParticles;
-                        c.y = ((c.nrParticles - 1) * c.y + p.y) / c.nrParticles;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    // Add newly placed particle as a new possible location of a cluster
-                    possibleClusters.add(new Cluster(p.x, p.y));
-                }
-            }
-        }
-
-        // Merge clusters if they are close together
-        for (int i = 0; i < possibleClusters.size(); i++) {
-            for (int j = i + 1; j < possibleClusters.size(); j++) {
-                Cluster a = possibleClusters.get(i);
-                Cluster b = possibleClusters.get(j);
-
-                if (Math.abs(a.x - b.x) < DELTA_CLUSTER_CENTRES &&
-                            Math.abs(a.y - b.y) < DELTA_CLUSTER_CENTRES) {
-                    // Merge clusters a and b
-                    a.x = (a.nrParticles * a.x + b.nrParticles * b.x) / (a.nrParticles + b.nrParticles);
-                    a.y = (a.nrParticles * a.y + b.nrParticles * b.y) / (a.nrParticles + b.nrParticles);
-                    a.nrParticles += b.nrParticles;
-
-                    // Remove cluster b from previousClusters and possibleClusters
-                    for (int k = 0; k < previousClusters.size(); k++) {
-                        Cluster prev = previousClusters.get(k);
-                        if (Math.abs(prev.x - b.x) < DELTA_CLUSTER_CENTRES &&
-                                Math.abs(prev.y - b.y) < DELTA_CLUSTER_CENTRES) {
-                            previousClusters.remove(k);
-                            break;
-                        }
-                    }
-                    possibleClusters.remove(j);
-                } /*else {
-                    // Dit is gecomment omdat de app anders erg traag lijkt te reageren
-
-                    // If multiple clusters indicated in same cell, but they cannot be merged,
-                    // large likelihood that it's a smeared out collection of particles.
-                    // Don't detect this as a cluster, since it is not at all converged
-                    if ((map.getCell(a.x,a.y)) == map.getCell(b.x, b.y)) {
-                        possibleClusters.remove(i);
-                        possibleClusters.remove(j - 1);
-                    }
-                }*/
-
-            }
-        }
-
-
+        mergePossibleClusters();
 
         // Move dead clusters
         for (Cluster c : deadClusters) {
@@ -267,7 +210,7 @@ public class ParticleController {
         }
 
         // Find current clusters
-        currentClusters = findCluster(alives);
+        currentClusters = findCluster();
 
         // Logging
         String current = "";
@@ -282,28 +225,8 @@ public class ParticleController {
         Log.d("previous", previousClusters.size() + " previous clusters: " + previous);
         Log.d("current", currentClusters.size() + " current clusters: " + current);
 
-        // Compare with previous clusters to find deceased clusters
-        for (Cluster prev: previousClusters) {
-            boolean deceased = true;
-
-            for (Cluster curr : currentClusters) {
-
-                if (matchingCluster(prev,curr)) {
-                    // Prev cluster is still present
-                    deceased = false;
-                    break;
-                }
-            }
-
-            if (deceased) {
-                // Prev cluster is dead, add it to deadClusters
-                deadClusters.addFirst(prev);
-                if (deadClusters.size() > MAX_DEAD_CLUSTERS) {
-                    deadClusters.removeLast();
-                }
-            }
-
-        }
+        // Compare newly found clusters to previously found clusters
+        findDeadClusters();
 
         // Logging
         String dead = "";
@@ -358,10 +281,98 @@ public class ParticleController {
         return dominantCells;
     }
 
+    // Use particle location to find possible cluster
+    public void addPossibleCluster(Particle p) {
+        if (possibleClusters.size() == 0) {
+            possibleClusters.add(new Cluster(p.x, p.y));
+        } else {
+            boolean found = false;
+            for (Cluster c : possibleClusters) {
+                if (Math.abs(c.x - p.x) < CLUSTER_RADIUS && Math.abs(c.y - p.y) < CLUSTER_RADIUS) {
+                    // Newly placed particle is close enough to cluster radius
+                    // Add particle to possible cluster and update weighted centre
+                    c.nrParticles++;
+                    c.x = ((c.nrParticles - 1) * c.x + p.x) / c.nrParticles;
+                    c.y = ((c.nrParticles - 1) * c.y + p.y) / c.nrParticles;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Add newly placed particle as a new possible location of a cluster
+                possibleClusters.add(new Cluster(p.x, p.y));
+            }
+        }
+    }
 
-    public List<Cluster> findCluster(List<Particle> particles) {
-        // Use cellDistr to get an estimation of where clusters are, then compute actual centres.
+    // Compare with previous clusters to find deceased clusters
+    public void findDeadClusters() {
+        for (Cluster prev: previousClusters) {
+            boolean deceased = true;
 
+            for (Cluster curr : currentClusters) {
+
+                if (matchingCluster(prev,curr)) {
+                    // Prev cluster is still present
+                    deceased = false;
+                    break;
+                }
+            }
+
+            if (deceased) {
+                // Prev cluster is dead, add it to deadClusters
+                deadClusters.addFirst(prev);
+                if (deadClusters.size() > MAX_DEAD_CLUSTERS) {
+                    deadClusters.removeLast();
+                }
+            }
+
+        }
+    }
+
+    public void mergePossibleClusters() {
+        // Merge clusters if they are close together
+        for (int i = 0; i < possibleClusters.size(); i++) {
+            for (int j = i + 1; j < possibleClusters.size(); j++) {
+                Cluster a = possibleClusters.get(i);
+                Cluster b = possibleClusters.get(j);
+
+                if (Math.abs(a.x - b.x) < DELTA_CLUSTER_CENTRES &&
+                        Math.abs(a.y - b.y) < DELTA_CLUSTER_CENTRES) {
+                    // Merge clusters a and b
+                    a.x = (a.nrParticles * a.x + b.nrParticles * b.x) / (a.nrParticles + b.nrParticles);
+                    a.y = (a.nrParticles * a.y + b.nrParticles * b.y) / (a.nrParticles + b.nrParticles);
+                    a.nrParticles += b.nrParticles;
+
+                    // Remove cluster b from previousClusters and possibleClusters
+                    for (int k = 0; k < previousClusters.size(); k++) {
+                        Cluster prev = previousClusters.get(k);
+                        if (Math.abs(prev.x - b.x) < DELTA_CLUSTER_CENTRES &&
+                                Math.abs(prev.y - b.y) < DELTA_CLUSTER_CENTRES) {
+                            previousClusters.remove(k);
+                            break;
+                        }
+                    }
+                    possibleClusters.remove(j);
+                } else {
+
+                    // If multiple clusters indicated in same cell, but they cannot be merged,
+                    // large likelihood that it's a smeared out collection of particles.
+                    // Don't detect this as a cluster, since it is not at all converged
+                    if ((map.getCell(a.x,a.y)) == map.getCell(b.x, b.y)) {
+                        possibleClusters.remove(i);
+                        possibleClusters.remove(j - 1);
+                    }
+                }
+
+            }
+        }
+    }
+
+    /* Use particle location to find and merge possible clusters */
+    public List<Cluster> findCluster() {
+
+        // Check all possible clusters wether they have enough particles to be seen as an actual cluster
         List<Cluster> foundClusters = new ArrayList<Cluster>();
 
         for (Cluster c : possibleClusters) {
@@ -376,24 +387,24 @@ public class ParticleController {
 
     /* Recover cluster by placing n particles around cluster centre */
     public void recoverCluster(Cluster cluster, int n) {
+        int counter;
 
         // Place n particles on the map around provided cluster centre
         for (int i = 0; i < n && deads.size() > 0; i++) {
             Particle p = deads.get(0);
-
+            counter = 0;
             do {
                 p.x = cluster.x + ndCluster.nextValue();
                 p.y = cluster.y + ndCluster.nextValue();
-            } while (map.getCell(p.x,p.y) != 0);
+                counter++;
+                if (counter > 10) return;   // If particles cannot be placed, at some point stop recovering the cluster
+                                            // This is not the best solution, but we'll stick with this for now
+            } while (!map.isValidLocation(p.x,p.y));
 
             cellDist[map.getCell(p.x,p.y)] += 1;
 
             deads.remove(0);
         }
-
-        // TODO update minX and minY to calculate surface
-        // TODO indicate what the new dominating cells are
-
     }
 
     /* Check if two clusters are actually the same cluster (ie approximately equal cluster centres) */
