@@ -105,7 +105,7 @@ public class ParticleController {
         int pcount = 0;
         for (int i = 1; i < cellDistribution.length; i++) {
             int numParticles = (int)(particleAmount * cellDistribution[i]);
-            c = cells[i];
+            c = cells[i - 1];
             for (int j = 0; j < numParticles; j++) {
                 do {
                     x = c.x + r.nextDouble() * (c.width);

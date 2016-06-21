@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
@@ -48,12 +50,43 @@ public class WifiIntel {
         }
     }
 
-    private class SendMessageTask extends AsyncTask<String, Void, String> {
+    private class MessageParam {
+        public Handler handler;
+        public int handler_msg_id;
+        public String message;
+
+        MessageParam(String message) {
+            this.message = message;
+        }
+
+        MessageParam(String message, Handler handler, int handler_msg_id) {
+            this.message = message;
+            this.handler = handler;
+            this.handler_msg_id = handler_msg_id;
+        }
+    }
+
+    private class SendMessageTask extends AsyncTask<MessageParam, Void, String> {
+        private String result;
+        private Handler handler;
+        private int handler_msg_id;
 
         @Override
-        protected String doInBackground(String... msgs) {
-            String msg = msgs[0];
-            return sendMessage(msg);
+        protected String doInBackground(MessageParam... msgs) {
+            MessageParam p = msgs[0];
+            String msg = p.message;
+            handler = p.handler;
+            handler_msg_id = p.handler_msg_id;
+
+            result = sendMessage(msg);
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String r) {
+            if (handler != null) {
+                handler.obtainMessage(handler_msg_id, result).sendToTarget();
+            }
         }
     }
 
@@ -69,41 +102,68 @@ public class WifiIntel {
     private List<Measurement> measurements; // Holds latest measurement results
     private Timer t;
 
+    /* Prediction handling */
+    private boolean awaitingPrediction = false;
+    private Handler handler;
+    private int handler_id;
+
     private final BroadcastReceiver mWifiScanReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent intent) {
             if (intent.getAction().equals(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)) {
                 List<ScanResult> mScanResults = mWifiManager.getScanResults();
 
+                measurements.clear();
+                List<String> handledIds = new ArrayList<>();
+                for (ScanResult sr : mScanResults) {
+                    // Don't add duplicate MAC addresses
+                    if (handledIds.contains(sr.BSSID)) continue;
+
+                    measurements.add(new Measurement(sr.BSSID, sr.level));
+
+                    handledIds.add(sr.BSSID);
+                }
+
+                // If awaiting prediction go
+                if (awaitingPrediction) {
+                    int[] cells = {};
+                    String msg = createMessage("predict", cells, measurements);
+                    new SendMessageTask().execute(new MessageParam(msg, handler, handler_id));
+                    awaitingPrediction = false;
+                    return;
+                }
+
                 // Only store if activity says so
                 if (parent.storeWifi && parent.storeCells.length > 0) {
                     int[] cells = parent.storeCells;
-                    measurements = new ArrayList<Measurement>();
-
-                    List<String> handledIds = new ArrayList<>();
-                    for (ScanResult sr : mScanResults) {
-                        // Don't add duplicate MAC addresses
-                        if (handledIds.contains(sr.BSSID)) continue;
-
-                        measurements.add(new Measurement(sr.BSSID, sr.level));
-
-                        handledIds.add(sr.BSSID);
-                    }
-
                     String msg = createMessage("store", cells, measurements);
                     Log.d("TheMessage", msg);
-                    new SendMessageTask().execute(msg);
+                    new SendMessageTask().execute(new MessageParam(msg));
                 }
             }
         }
     };
 
-    public WifiIntel (MapActivity parent) {
+    public WifiIntel (MapActivity parent, Handler predictionHandler, int prediction_handler_id) {
         this.parent = parent;
+        this.measurements = new ArrayList<>();
         sock = new Socket();
+        this.handler = predictionHandler;
+        this.handler_id = prediction_handler_id;
     }
 
     public void start() {
+    }
+
+    public void requestPrediction() {
+        int[] cells = {};
+
+        if (measurements.size() > 0) {
+            String msg = createMessage("predict", cells, measurements);
+            new SendMessageTask().execute(new MessageParam(msg, handler, handler_id));
+        } else {
+            awaitingPrediction = true;
+        }
     }
 
     private void connect() {
