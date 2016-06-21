@@ -170,17 +170,15 @@ public class MapActivity extends Activity {
         mapView.update();
 
         // If cells < 2, set storing on, otherwise set off
-        // TODO: USE SURFACE?
         if (particleController.getDominantCells().size() > 0 && particleController.getDominantCells().size() <= 3
                 && particleController.getSurfaceFraction() < 0.05) {
-            if (!storeWifi) { // Only do things if switching state
-                storeWifi = true;
-                storeCells = new int[particleController.getDominantCells().size()];
-                int i = 0;
-                for (Integer cell : particleController.getDominantCells())
-                    storeCells[i++] = cell;
-                cellView.setText("Storing for cells " + particleController.getActiveCell());
-            }
+            // Only do things if switching state
+            storeWifi = true;
+            storeCells = new int[particleController.getDominantCells().size()];
+            int i = 0;
+            for (Integer cell : particleController.getDominantCells())
+                storeCells[i++] = cell;
+            cellView.setText("Storing for cells " + particleController.getActiveCell());
         } else {
             if (storeWifi) { // Only do things if switching state
                 storeWifi = false;
