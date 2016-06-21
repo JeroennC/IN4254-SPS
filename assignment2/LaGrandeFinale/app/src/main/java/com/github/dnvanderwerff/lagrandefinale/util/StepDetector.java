@@ -30,7 +30,6 @@ public class StepDetector implements SensorEventListener {
     private Sensor accelerometer;
 
     /* Autocorrelation */
-    //private AutoCorrelation2 autoCorrelation;
     private AutoCorrelation corr;
 
     /* Variables */
