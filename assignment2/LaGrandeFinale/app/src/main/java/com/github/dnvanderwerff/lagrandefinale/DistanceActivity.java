@@ -226,7 +226,7 @@ public class DistanceActivity extends AppCompatActivity implements SensorEventLi
         double min = Integer.MAX_VALUE;
         int index = 0;
 
-        for (int i = 0; i < a.length; i++) { // TODO maybe adjust boundaries to be completely sure that actual value is returned, and not values on the far right side of plot for example
+        for (int i = 0; i < a.length; i++) {
             if (a[i] + b[i] < min) {
                 min = a[i] + b[i];
                 index = i;

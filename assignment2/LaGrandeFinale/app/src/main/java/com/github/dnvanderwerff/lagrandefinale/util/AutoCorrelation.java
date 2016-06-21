@@ -12,22 +12,21 @@ import java.util.ListIterator;
  *  It takes the magnitude of the acceleration, smoothes this and performs autocorrelation on this smoothed data.
  */
 public class AutoCorrelation {
-    //private static final int tMin = 20, tMax =50; // 1 stap
-    private static final int tMin = 40, tMax = 100; // 2 stappen
+    private static final int tMin = 40, tMax = 100;             // 2 stappen
     private static final int smoothIntervalTail = 2;            // Parameter used for smoothing accelerator data
     public static final double WALKING_THRESHOLD = 0.7;
-    private static final int tWindowTailSize = 20; // Distance from optimal tau that is checked
-    private List<Double> accData;   // Smoothed accelerator signal
-    private List<Double> calcData;  // Data that is used to calculate the auto correlation
-    private LinkedList<Double> rawAccData;   // Raw accelerator signal
-    public State currentState;      // Activity state of user
-    public int optPeriod;           // Equals step periodicity of user if the user is walking, 0 otherwise.
+    private static final int tWindowTailSize = 20;              // Distance from optimal tau that is checked
+    private List<Double> accData;                               // Smoothed accelerator signal
+    private List<Double> calcData;                              // Data that is used to calculate the auto correlation
+    private LinkedList<Double> rawAccData;                      // Raw accelerator signal
+    public State currentState;                                  // Activity state of user
+    public int optPeriod;                                       // Equals step periodicity of user if the user is walking, 0 otherwise.
     public double autocorr;
-    private double maxMagnitudeThreshold; // Is a threshold for the maximum magnitude, to ignore big sudden values
+    private double maxMagnitudeThreshold;                       // Is a threshold for the maximum magnitude, to ignore big sudden values
     public int lowT = tMin, highT = tMax;
-    private double[] storedData; // Contains the last walk signal
+    private double[] storedData;                                // Contains the last walk signal
 
-
+    /* State of the user */
     public enum State {
         STILL,WALKING
     }
@@ -99,8 +98,6 @@ public class AutoCorrelation {
             } else {
                 this.currentState = State.STILL;
             }
-            Log.d("autocorr_res", String.format("optPeriod " + this.optPeriod + ", AutoCorr %.2f", res.max));
-
         }
     }
 
@@ -164,7 +161,6 @@ public class AutoCorrelation {
         double sd = Math.sqrt(sum / cnt);
 
         if (storedData != null && sd < StepDetector.STANDARD_DEV_WALKING_THRESHOLD) {
-            Log.d("TEST", "Using stored data");
             for (int i = 0; i < highT; i++)
                 calcData.set(i, storedData[i]);
         }
@@ -180,7 +176,6 @@ public class AutoCorrelation {
             }
 
         }
-        Log.d("maxNorm", String.format("Max %.2f optPeriod " + optPeriod,max));
         return new Result(optPeriod, max, maxMagnitude);
     }
 
@@ -229,52 +224,6 @@ public class AutoCorrelation {
         for (int i = 0; i < highT; i++) {
             storedData[i] = accData.get(i + listOffset);
         }
-        Log.d("TEST", "Stored signal data");
     }
-
-
-    /*
-    private List<Double> findPeaks(List<Double> a) {
-
-        double max = 0;
-        List<Double> peaks = new ArrayList<Double>();
-
-        int startWindow = 0;
-        int endWindow = startWindow + tMax;
-        int delta = tMin;                       // Minimum amount of samples between peaks
-        int peakLoc = 0;
-
-        for (int i = 0; i < a.size(); ) {
-
-            for (int j = i; j < endWindow; j++) {
-                if (a.get(j) > max) {
-                    max = a.get(j);
-                    peakLoc = j;
-
-                }
-                // max now equals global max within window tMax
-            }
-
-            peaks.add(max);
-            max = 0;
-
-            if (peakLoc + delta + tMax >= a.size()) return peaks;
-
-            i = peakLoc + delta;     // Minimal possible index for new peak
-            endWindow = i + tMax;   // Maximum possible index for new peak
-
-
-        }
-
-        return peaks;
-
-    }
-
-    */
-
-
-
-
-
 
 }

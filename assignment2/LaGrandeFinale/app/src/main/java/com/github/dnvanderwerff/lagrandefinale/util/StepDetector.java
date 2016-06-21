@@ -36,10 +36,10 @@ public class StepDetector implements SensorEventListener {
     private State currentState = State.STILL;
     private float[] accelVals;
     List<Double> accMagnitude;      // List of acc magnitudes within one time window
-    List<Double> valueBuffer; // Buffer of magnitudes while paused
-    long TimeWindow = 600;                              // Time window in ms, can be adapted
+    List<Double> valueBuffer;       // Buffer of magnitudes while paused
+    long TimeWindow = 600;          // Time window in ms, can be adapted
     int sampleWindow = 30;
-    long endOfWindow; // Set current endOfWindow
+    long endOfWindow;               // Set current endOfWindow
     int sampleCount;
     private boolean paused = false;
 
@@ -47,8 +47,6 @@ public class StepDetector implements SensorEventListener {
         return currentState;
     }
 
-    //public double getCorrelation() { return autoCorrelation.getCorrelation(); }
-    //public int getOptimalTimeWindow() { return autoCorrelation.getOptimalTimeWindow(); }
     public double getCorrelation() {
 
         if (currentState.equals(State.STILL)) {
@@ -74,7 +72,6 @@ public class StepDetector implements SensorEventListener {
 
         corr = new AutoCorrelation(new ArrayList<Double>());
 
-        //autoCorrelation = new AutoCorrelation(handler);
     }
 
     public void pauseSensor() {
@@ -113,13 +110,7 @@ public class StepDetector implements SensorEventListener {
                 sampleWindow = corr.optPeriod
                         / 2 // if 2 steps
                 ;
-                Log.d("period", TimeWindow + ", " + corr.optPeriod);
             }
-
-            Log.d("End of window", "state is " + currentState.toString());
-
-            // Set the time window
-            //TimeWindow = autoCorrelation.getOptimalTimeWindow();
 
             // Do step
             if (stepHandler != null && currentState == State.WALKING)

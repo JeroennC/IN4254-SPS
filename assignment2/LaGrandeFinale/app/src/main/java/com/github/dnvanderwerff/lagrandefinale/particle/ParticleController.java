@@ -214,28 +214,8 @@ public class ParticleController {
         // Find current clusters
         currentClusters = findCluster();
 
-        // Logging
-        String current = "";
-        String previous = "";
-        for (int i = 0; i < currentClusters.size(); i++) {
-            current += String.format("%d, ", map.getCell(currentClusters.get(i).x,currentClusters.get(i).y));
-        }
-        for (int i = 0; i < previousClusters.size(); i++) {
-            //previous += map.getCell(previousClusters.get(i).x, previousClusters.get(i).y) + ",";
-            previous += previousClusters.get(i).x + "," + previousClusters.get(i).y;
-        }
-        Log.d("previous", previousClusters.size() + " previous clusters: " + previous);
-        Log.d("current", currentClusters.size() + " current clusters: " + current);
-
         // Compare newly found clusters to previously found clusters
         findDeadClusters();
-
-        // Logging
-        String dead = "";
-        for (int i = 0; i < deadClusters.size(); i++) {
-            dead += map.getCell(deadClusters.get(i).x, deadClusters.get(i).y) + ",";
-        }
-        Log.d("Dead", deadClusters.size() + " dead clusters: " + dead);
 
         previousClusters = currentClusters;
 
@@ -380,7 +360,6 @@ public class ParticleController {
         for (Cluster c : possibleClusters) {
             if (c.nrParticles > CLUSTER_PARTICLES_THRESHOLD) {
                 foundClusters.add(new Cluster(c.x, c.y));
-                Log.d("Found",String.format("Cluster found at x: %f, y: %f in cell : %d",c.x,c.y,map.getCell(c.x,c.y)));
             }
         }
 
