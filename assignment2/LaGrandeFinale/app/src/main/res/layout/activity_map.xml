@@ -51,6 +51,16 @@
         android:onClick="doStep"
         android:layout_centerHorizontal="true" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/predictbutton"
+        android:layout_marginTop="5pt"
+        android:text="Predict"
+        android:onClick="requestPrediction"
+        android:layout_toLeftOf="@id/stepbutton"
+        android:layout_centerHorizontal="true" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

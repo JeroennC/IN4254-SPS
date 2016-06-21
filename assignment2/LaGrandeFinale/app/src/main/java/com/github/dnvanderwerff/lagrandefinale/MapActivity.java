@@ -17,6 +17,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
@@ -27,12 +28,17 @@ import com.github.dnvanderwerff.lagrandefinale.util.WifiIntel;
 import com.github.dnvanderwerff.lagrandefinale.view.CompassView;
 import com.github.dnvanderwerff.lagrandefinale.view.MapView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
+    public final static int PREDICTION_HANDLER_ID = 555;
     public final static int PERM_REQ_INTERNET = 1337;
+    private final int PARTICLE_COUNT = 10000;
     private final static int offsetDegreesBuildingMap =  -30;
     private final static float offsetRadianBuildingMap = (float)(Math.toRadians(offsetDegreesBuildingMap));
     private final Activity act = this;
@@ -64,7 +70,7 @@ public class MapActivity extends Activity {
     private float radianNorth, radianMe;
     private NormalDistribution ndDirection;
     public boolean storeWifi = false;                       // Boolean indicates whether access point information should be stored to the cloud service
-    public int[] storeCells = {};                       // Contains the cell numbers to store in
+    public int[] storeCells = {};                           // Contains the cell numbers to store in
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +87,7 @@ public class MapActivity extends Activity {
 
         collisionMap = new CollisionMap(mapType);
         particleController = new ParticleController(collisionMap);
-        particleController.initialize(10000);
+        particleController.initialize(PARTICLE_COUNT);
         // Show surface
         surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
 
@@ -96,7 +102,7 @@ public class MapActivity extends Activity {
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         directionExtractor = new DirectionExtractor(mSensorManager);
         stepDetector = new StepDetector(mSensorManager, mHandler);
-        wifiIntel = new WifiIntel(this);
+        wifiIntel = new WifiIntel(this, mHandler, PREDICTION_HANDLER_ID);
         wifiThread = new Thread() {
             public void run() {
                 wifiIntel.start();
@@ -186,6 +192,10 @@ public class MapActivity extends Activity {
         //surfaceView.setText(String.format("Surface: %.1f m\u00B2, %.1f%%", particleController.getSurface(), particleController.getSurfaceFraction() * 100));
     }
 
+    public void requestPrediction(View view) {
+        wifiIntel.requestPrediction();
+    }
+
     /* Class updating compass */
     class updateCompassTask extends TimerTask {
         @Override
@@ -199,7 +209,7 @@ public class MapActivity extends Activity {
         }
     }
 
-    /* Handler to update UI */
+    /* Handler to update parts of the application */
     public Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -211,6 +221,26 @@ public class MapActivity extends Activity {
                     break;
                 case StepDetector.STEP_HANDLER_ID:
                     doStep(null);
+                    break;
+                case PREDICTION_HANDLER_ID:
+                    String result = (String)msg.obj;
+                    if (!result.isEmpty()) {
+                        // Read JSON list
+                        double[] cellDist = new double[21];
+                        Log.d("PredictResult", result);
+                        try {
+                            JSONArray jsonArray = new JSONArray(result);
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                cellDist[i] = jsonArray.getDouble(i);
+                            }
+                            particleController.initialize(PARTICLE_COUNT, cellDist);
+                            break;
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    Toast.makeText(act, "Could not initialize prediction", Toast.LENGTH_LONG).show();
                     break;
             }
         }

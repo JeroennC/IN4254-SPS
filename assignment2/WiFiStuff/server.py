@@ -38,8 +38,8 @@ classifiers = []
 def predictCells(measurement):
   data = measurement['data']
   sum = 0
-  cellDist = [None] * 19
-  for i in xrange(0, 19):
+  cellDist = [None] * 21
+  for i in xrange(0, 21):
     cellDist[i] = 0
   
   for sample in data:
@@ -57,8 +57,9 @@ def predictCells(measurement):
       sum += probs[0][i]
       
   # Normalize
-  for i in xrange(0, 19):
-    cellDist[i] /= sum
+  if sum > 0:
+    for i in xrange(0, 21):
+      cellDist[i] /= sum
   
   return cellDist
   

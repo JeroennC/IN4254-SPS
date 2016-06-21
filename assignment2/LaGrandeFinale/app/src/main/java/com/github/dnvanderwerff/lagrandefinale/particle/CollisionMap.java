@@ -90,7 +90,7 @@ public class CollisionMap {
 
         // Cells
         cellCount = 21;
-        cells = new Cell[18];
+        cells = new Cell[20];
         cells[0] = new Cell(1, 56, 8.2f, 4, 6.1f);
         cells[3] = new Cell(4, 52, 0, 4, 6.1f);
         cells[7] = new Cell(8, 40, 8.2f, 4, 6.1f);
@@ -111,6 +111,8 @@ public class CollisionMap {
         cells[13] = new Cell(14, 20, 6.1f, 4, 2.1f);
         cells[14] = new Cell(15, 16, 6.1f, 4, 2.1f);
         cells[15] = new Cell(16, 12, 6.1f, 4, 2.1f);
+        cells[18] = new Cell(19, 0, 6.1f, 12, 2.1f);
+        cells[19] = new Cell(20, 60, 6.1f, 12, 2.1f);
     }
 
     private void initializeLShape() {
