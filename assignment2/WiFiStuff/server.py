@@ -129,7 +129,7 @@ while True:
     try:
         print >>sys.stderr, 'connection from', client_address
 
-        # Receive the data in small chunks and retransmit it
+        # Receive the data and use it
         while True:
             data = recv_message(connection)
             

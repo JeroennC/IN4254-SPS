@@ -3,6 +3,11 @@
     package="com.github.dnvanderwerff.lagrandefinale">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -32,11 +37,14 @@
         <activity
             android:name=".AccelerationMeasure"
             android:theme="@style/AppTheme" />
-        <activity android:name=".VelocityActivity"
-            android:theme="@style/AppTheme"></activity>
+        <activity
+            android:name=".VelocityActivity"
+            android:theme="@style/AppTheme" />
         <activity
             android:name=".LengthActivity"
             android:theme="@style/AppTheme" />
+        <activity android:name=".NovaMagnetoActivity"
+            android:theme="@style/AppTheme"></activity>
     </application>
 
 </manifest>

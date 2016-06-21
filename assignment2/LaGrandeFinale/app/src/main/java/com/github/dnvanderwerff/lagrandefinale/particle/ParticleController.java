@@ -25,6 +25,7 @@ public class ParticleController {
     private double surface, totalSurface;                   // Surface of location where the user is most likely to be, and total surface
     private int[] cellDist;                                 // Array indicating how the particles are distributed among the cells
     private String activeCell;                              // Text displaying which cells are dominantly occupied by particles
+    private List<Integer> dominantCells;                    // List containing dominant cells
 
     private List<Cluster> previousClusters, currentClusters; // List of cluster for previous and current iteration of move()
     private LinkedList<Cluster> deadClusters;                // Sorted list of most recently deceased clusters
@@ -50,6 +51,7 @@ public class ParticleController {
         deads = new LinkedList<>();
         r = new Random(System.nanoTime());
         cellDist = new int[map.getCellCount() ];
+        dominantCells = new ArrayList<Integer>();
 
         possibleClusters = new ArrayList<Cluster>();
         previousClusters = new ArrayList<Cluster>();
@@ -292,13 +294,15 @@ public class ParticleController {
         surface = (maxX - minX) * (maxY - minY);
 
         // Define which cells user is in
-        float p30 = alives.size() * 0.3f;
+        dominantCells.clear();
+        float p30 = Math.max(alives.size() * 0.3f, 1.0f); // Just to be sure, this must never be 0 (recovery should make this unnecessary)
         activeCell = "";
         for (int i = 0; i < cellDist.length; i++) {
             if (cellDist[i] >= p30) {
                 if (!activeCell.equals(""))
                     activeCell += ",";
                 activeCell += "C" + i;
+                dominantCells.add(i);
             }
         }
         if (activeCell.equals(""))
@@ -312,6 +316,10 @@ public class ParticleController {
 
     public String getActiveCell() {
         return activeCell;
+    }
+
+    public List<Integer> getDominantCells() {
+        return dominantCells;
     }
 
 

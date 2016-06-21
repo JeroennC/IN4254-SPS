@@ -50,4 +50,9 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LengthActivity.class);
         startActivity(intent);
     }
+
+    public void startNovaMagneto(View view) {
+        Intent intent = new Intent(this, NovaMagnetoActivity.class);
+        startActivity(intent);
+    }
 }
