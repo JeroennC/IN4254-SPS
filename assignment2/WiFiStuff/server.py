@@ -64,7 +64,8 @@ def predictCells(measurement):
   # For all cells, add 1/20 and normalize again (the new sum = 2)
   for i in xrange(1, 21):
     cellDist[i] += 0.05
-    cellDist[i] /= 2
+    if sum > 0: # If sum is 0, then don't divide by 2
+      cellDist[i] /= 2
       
   
   return cellDist
