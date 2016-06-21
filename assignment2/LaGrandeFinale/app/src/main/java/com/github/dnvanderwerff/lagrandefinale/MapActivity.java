@@ -171,7 +171,8 @@ public class MapActivity extends Activity {
 
         // If cells < 2, set storing on, otherwise set off
         // TODO: USE SURFACE?
-        if (particleController.getDominantCells().size() > 0 && particleController.getDominantCells().size() <= 2) {
+        if (particleController.getDominantCells().size() > 0 && particleController.getDominantCells().size() <= 3
+                && particleController.getSurfaceFraction() < 0.05) {
             if (!storeWifi) { // Only do things if switching state
                 storeWifi = true;
                 storeCells = new int[particleController.getDominantCells().size()];
@@ -194,6 +195,10 @@ public class MapActivity extends Activity {
 
     public void requestPrediction(View view) {
         wifiIntel.requestPrediction();
+    }
+
+    public void requestReset(View view) {
+        wifiIntel.requestReset();
     }
 
     /* Class updating compass */

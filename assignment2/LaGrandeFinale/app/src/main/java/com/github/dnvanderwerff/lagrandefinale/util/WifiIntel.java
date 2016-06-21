@@ -166,6 +166,12 @@ public class WifiIntel {
         }
     }
 
+    public void requestReset() {
+        int[] cells = {};
+        String msg = createMessage("reset", cells, measurements);
+        new SendMessageTask().execute(new MessageParam(msg));
+    }
+
     private void connect() {
         try {
             sock.connect(addr);

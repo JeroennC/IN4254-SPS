@@ -89,8 +89,8 @@ def storeData(measurement):
   return
   
 def reset():
-  known_bssids = []
-  classifiers = []
+  del known_bssids[:]
+  del classifiers[:]
   print "Reset everything"
   return
   
