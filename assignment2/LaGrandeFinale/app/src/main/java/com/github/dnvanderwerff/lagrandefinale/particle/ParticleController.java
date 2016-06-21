@@ -105,6 +105,8 @@ public class ParticleController {
         int pcount = 0;
         for (int i = 1; i < cellDistribution.length; i++) {
             int numParticles = (int)(particleAmount * cellDistribution[i]);
+            if (i == cellDistribution.length - 1) // Make sure that particleAmount particles are placed
+                numParticles = particleAmount - pcount;
             c = cells[i - 1];
             for (int j = 0; j < numParticles; j++) {
                 do {

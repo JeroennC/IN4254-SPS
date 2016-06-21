@@ -229,11 +229,17 @@ public class MapActivity extends Activity {
                         double[] cellDist = new double[21];
                         Log.d("PredictResult", result);
                         try {
+                            boolean isFilled = false;
                             JSONArray jsonArray = new JSONArray(result);
                             for (int i = 0; i < jsonArray.length(); i++) {
                                 cellDist[i] = jsonArray.getDouble(i);
+                                if (cellDist[i] > 0)
+                                    isFilled = true;
                             }
-                            particleController.initialize(PARTICLE_COUNT, cellDist);
+                            if (isFilled) {
+                                particleController.initialize(PARTICLE_COUNT, cellDist);
+                                mapView.update();
+                            }
                             break;
                         } catch (JSONException e) {
                             e.printStackTrace();

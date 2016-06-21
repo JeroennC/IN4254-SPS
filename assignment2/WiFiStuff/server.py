@@ -55,11 +55,16 @@ def predictCells(measurement):
     for i in range(len(cells)):
       cellDist[cells[i]] += probs[0][i]
       sum += probs[0][i]
-      
+    
   # Normalize
-  if sum > 0:
-    for i in xrange(0, 21):
-      cellDist[i] /= sum
+  for i in xrange(0, 21):
+    cellDist[i] /= sum
+    
+  # For all cells, add 1/20 and normalize again (the new sum = 2)
+  for i in xrange(1, 21):
+    cellDist[i] += 0.05
+    cellDist[i] /= 2
+      
   
   return cellDist
   
