@@ -43,6 +43,8 @@ import java.util.TimerTask;
  *      -   Cell selection
  *      -   Direction selection
  *      -   Start/Stop recording
+ *
+ *  It also records RSSI data, which was used to build the RSSI server
  */
 public class NovaMagnetoActivity extends AppCompatActivity {
     public final static int PERM_REQ_EXTWRITE = 1;

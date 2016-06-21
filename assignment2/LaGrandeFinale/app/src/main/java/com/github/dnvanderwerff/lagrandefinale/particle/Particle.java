@@ -1,7 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.particle;
 
 /**
- * Created by Jeroen on 21/05/2016.
+ * Represents a single particle.
  */
 public class Particle {
     public double x, y;

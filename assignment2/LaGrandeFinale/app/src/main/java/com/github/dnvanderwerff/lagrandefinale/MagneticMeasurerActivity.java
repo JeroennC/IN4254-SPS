@@ -27,6 +27,10 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * This activity measures the angle of the measured north by DirectionExtractor
+ * The phone should be constantly held in the same direction whilst recording to get useful data.
+ */
 public class MagneticMeasurerActivity extends AppCompatActivity {
     public final static int PERM_REQ_EXTWRITE = 1;
     private final AppCompatActivity act = this;

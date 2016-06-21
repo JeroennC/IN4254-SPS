@@ -13,14 +13,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created by Jeroen on 23/05/2016.
+ *  Combines the standard deviation check and the autocorrelation check to detect steps being taken. When a step is detected, tells the MapActivity to do a step.
  */
 public class StepDetector implements SensorEventListener {
     private static final float ALPHA = 0.8f;
     public static final int STEP_HANDLER_ID = 3333;
     public static final double STANDARD_DEV_WALKING_THRESHOLD = 0.2;
     public static final double CORRELATION_WALKING_THRESHOLD = 0.4;
-    public static final int tMax = 50;
 
     public enum State {
         STILL,WALKING

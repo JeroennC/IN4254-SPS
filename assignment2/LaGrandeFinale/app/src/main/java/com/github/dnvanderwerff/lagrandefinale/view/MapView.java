@@ -17,7 +17,7 @@ import com.github.dnvanderwerff.lagrandefinale.particle.Particle;
 import com.github.dnvanderwerff.lagrandefinale.particle.ParticleController;
 
 /**
- * Created by Jeroen on 12/06/2016.
+ * This view draws the map and all particles on it
  */
 public class MapView extends SurfaceView implements SurfaceHolder.Callback {
     private Context context;
@@ -65,8 +65,6 @@ public class MapView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     protected void drawMap(Canvas canvas) {
-        Log.d("TimeStartDraw", "" + System.currentTimeMillis());
-        long start = System.currentTimeMillis();
         int w = getMeasuredWidth();
         int h = getMeasuredHeight();
 
@@ -81,7 +79,6 @@ public class MapView extends SurfaceView implements SurfaceHolder.Callback {
         // Draw background
         canvas.drawColor(Color.WHITE);
         canvas.drawBitmap(background,0,0, null);
-        long bg = System.currentTimeMillis();
 
         // Draw particools
         Particle[] particools = particleController.getParticles();
@@ -94,9 +91,6 @@ public class MapView extends SurfaceView implements SurfaceHolder.Callback {
                     (float)particool.x * meterToCanvasW,
                     (float)particool.y * meterToCanvasH, 2, paint);
         }
-        long particles = System.currentTimeMillis();
-        Log.d("TimeParticle", (bg - start) + "\t" + (particles - bg));
-        Log.d("TimeEnd", "" + System.currentTimeMillis());
     }
 
     private void createBackground(int w, int h) {

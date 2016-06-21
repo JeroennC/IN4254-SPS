@@ -1,8 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.view;
 
 /**
- * Created by Jeroen on 21/05/2016.
- * http://sunil-android.blogspot.nl/2013/02/create-our-android-compass.html
+ * Displays a compass so that the user can see where the measured magnetic north lies
  */
 import android.content.Context;
 import android.graphics.Canvas;
@@ -17,17 +16,14 @@ public class CompassView extends View {
 
     public CompassView(Context context) {
         super(context);
-        // TODO Auto-generated constructor stub
     }
 
     public CompassView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        // TODO Auto-generated constructor stub
     }
 
     public CompassView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        // TODO Auto-generated constructor stub
     }
 
     @Override

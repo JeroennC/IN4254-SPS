@@ -1,7 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.particle;
 
 /**
- * Created by Jeroen on 21/05/2016.
+ * Contains the data for the entire map. Particles use this to check for collision.
  */
 public class CollisionMap {
     // Every tile represents 10 cm x 10 cm

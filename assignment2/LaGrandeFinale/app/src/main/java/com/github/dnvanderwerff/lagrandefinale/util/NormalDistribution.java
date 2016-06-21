@@ -3,7 +3,7 @@ package com.github.dnvanderwerff.lagrandefinale.util;
 import java.util.Random;
 
 /**
- * Created by Jeroen on 21/05/2016.
+ * Represents a Gaussian function
  */
 public class NormalDistribution {
     private Random r;

@@ -21,6 +21,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+/**
+ * Simple accelerometer gathering activity
+ */
 public class AccelerationMeasure extends AppCompatActivity implements SensorEventListener {
 
     public final static int PERM_REQ_EXTWRITE = 1;

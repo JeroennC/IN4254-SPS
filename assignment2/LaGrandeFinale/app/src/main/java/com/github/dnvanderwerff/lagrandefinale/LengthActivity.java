@@ -7,7 +7,9 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
-
+/**
+ * This activity lets the user set their length in meters, which is used by MapActivity to determine the size of a step.
+ */
 public class LengthActivity extends AppCompatActivity {
 
     private final AppCompatActivity act = this;

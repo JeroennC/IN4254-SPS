@@ -13,9 +13,14 @@ import java.util.Random;
 import java.util.StringTokenizer;
 
 /**
- * Created by Jeroen on 21/05/2016.
+ * This class places and moves all particles, performs cluster detection and particle recovery.
  */
 public class ParticleController {
+    private final static int MAX_RECOVERED_CLUSTERS = 3;    // Max nr of clusters that will be revived when all particles are gone
+    private final static int MAX_DEAD_CLUSTERS = 3;         // Max nr of dead clusters program keeps track of
+    private final static double DELTA_CLUSTER_CENTRES = MainActivity.length*0.41;       // Distance that two clusters centres can differ while being
+                                                                                        // seen as same cluster (used for cluster tracking) in meters
+    private final static double CLUSTER_RADIUS = 1.5;       // in meters
 
     private CollisionMap map;                               // The collision map
     private Particle[] particles;                           // Array of all particles within the map
@@ -30,11 +35,6 @@ public class ParticleController {
     private List<Cluster> previousClusters, currentClusters; // List of cluster for previous and current iteration of move()
     private LinkedList<Cluster> deadClusters;                // Sorted list of most recently deceased clusters
     private NormalDistribution ndCluster;                    // Normal distribution for placing particles in recovered cluster
-    private static int MAX_RECOVERED_CLUSTERS = 3;           // Max nr of clusters that will be revived when all particles are gone
-    private static int MAX_DEAD_CLUSTERS = 3;                // Max nr of dead clusters program keeps track of
-    private static double DELTA_CLUSTER_CENTRES = MainActivity.length*0.41;       // Distance that two clusters centres can differ while being
-                                                             // seen as same cluster (used for cluster tracking) in meters
-    private static double CLUSTER_RADIUS = 1.5;              // in meters
     private int CLUSTER_PARTICLES_THRESHOLD;                 // Min nr of particles in possible cluster to classify it as an actual cluster
     private List<Cluster> possibleClusters;
 

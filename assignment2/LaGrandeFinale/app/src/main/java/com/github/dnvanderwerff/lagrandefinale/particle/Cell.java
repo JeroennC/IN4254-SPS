@@ -1,7 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.particle;
 
 /**
- * Created by Jeroen on 24/05/2016.
+ * Represents a cell in the map
  */
 public class Cell {
     public float x, y, width, height;   // x and y are coordinates of left upper corner of the cell

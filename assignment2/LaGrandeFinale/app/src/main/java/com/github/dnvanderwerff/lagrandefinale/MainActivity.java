@@ -8,7 +8,9 @@ import android.view.View;
 
 import com.github.dnvanderwerff.lagrandefinale.particle.CollisionMap;
 
-
+/**
+ * This activity is the launcher and is a simple menu to the different activities used during development
+ */
 public class MainActivity extends AppCompatActivity {
 
     public static double length = 1.80; // Initialize length of user throughout app

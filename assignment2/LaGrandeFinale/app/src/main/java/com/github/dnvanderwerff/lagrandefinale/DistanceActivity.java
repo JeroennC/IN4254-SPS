@@ -29,7 +29,10 @@ import com.jjoe64.graphview.*;
 import com.jjoe64.graphview.series.*;
 
 
-
+/**
+ * Measures the accelerometer data while walking/standing (based on user input)
+ * Collects this information to display a chart of the separation of magnitudes
+ */
 public class DistanceActivity extends AppCompatActivity implements SensorEventListener {
 
     public final static int PERM_REQ_EXTWRITE = 1;

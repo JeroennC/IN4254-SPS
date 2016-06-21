@@ -6,8 +6,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
 /**
- * Created by Jeroen on 21/05/2016.
- * With elements from http://www.thousand-thoughts.com/2012/03/android-sensor-fusion-tutorial/
+ * Based on http://www.thousand-thoughts.com/2012/03/android-sensor-fusion-tutorial/
+ *
  */
 public class DirectionExtractor implements SensorEventListener {
     private static final float ALPHA = 0.8f;

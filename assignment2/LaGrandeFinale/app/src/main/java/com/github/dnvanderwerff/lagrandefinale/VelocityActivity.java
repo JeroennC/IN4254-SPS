@@ -11,6 +11,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
+/**
+ * This activity was used as an attempt to measure some form of velocity, to be used for placement offset
+ */
 public class VelocityActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final float ALPHA = 0.8f;

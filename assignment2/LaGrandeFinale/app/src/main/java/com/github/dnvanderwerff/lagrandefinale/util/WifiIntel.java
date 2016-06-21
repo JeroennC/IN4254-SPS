@@ -33,7 +33,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Created by Jeroen on 20/06/2016.
+ * Collects the nearby access points' RSSI values.
+ * Communicates with the server
+ * If it can store it will store, and if a prediction is requested it will request this prediction from the server.
  */
 public class WifiIntel {
     private static final String host = "52.58.85.127";

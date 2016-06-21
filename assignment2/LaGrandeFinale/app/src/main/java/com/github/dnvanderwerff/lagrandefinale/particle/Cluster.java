@@ -1,7 +1,7 @@
 package com.github.dnvanderwerff.lagrandefinale.particle;
 
 /**
- * Created by Danielle on 16-6-16.
+ * Represents a particle cluster
  */
 public class Cluster {
 

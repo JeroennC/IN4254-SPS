@@ -7,15 +7,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
-/**
- * Created by Danielle on 26-5-16.
- */
-
-
-/* AutoCorrelation class. Upon creation of an AutoCorrelation object for a certain accelerator
- * signal, this class immediately determines the corresponding state (STILL or
- * WALKING) and if necessary the period of walking. All based on normalized auto-correlation
- * as described by http://research.microsoft.com/pubs/166309/com273-chintalapudi.pdf.
+/*
+ *  This class performs normalized auto-correlation as explained in Zee: Zero-Effort Crowdsourcing for Indoor Localization (http://research.microsoft.com/pubs/166309/com273-chintalapudi.pdf)
+ *  It takes the magnitude of the acceleration, smoothes this and performs autocorrelation on this smoothed data.
  */
 public class AutoCorrelation {
     //private static final int tMin = 20, tMax =50; // 1 stap
@@ -91,13 +85,13 @@ public class AutoCorrelation {
 
         // Check if enough data has been obtained
         if (accData.size() > 2 * tMax + 1) {
-            Result res = maxNormAutoCorrelation(0, lowT, highT);
+            Result res = maxNormAutoCorrelation(lowT, highT);
             this.autocorr = res.max;
             if (res.max > WALKING_THRESHOLD) {
                 this.currentState = State.WALKING;
                 this.optPeriod = res.period;
-                this.lowT  = this.optPeriod - this.tWindowTailSize < tMin ? tMin : this.optPeriod - this.tWindowTailSize;
-                this.highT = this.optPeriod + this.tWindowTailSize > tMax ? tMax : this.optPeriod + this.tWindowTailSize;
+                this.lowT  = this.optPeriod - tWindowTailSize < tMin ? tMin : this.optPeriod - tWindowTailSize;
+                this.highT = this.optPeriod + tWindowTailSize > tMax ? tMax : this.optPeriod + tWindowTailSize;
                 // Update max magnitude
                 this.maxMagnitudeThreshold = res.maxMagnitude * 4; // 4 is just a choice.. maybe needs to be adapted
                 // Store the most recent walk signal
@@ -129,18 +123,17 @@ public class AutoCorrelation {
             return -1;
 
         X /= (tau * sd1 * sd2);
-        Log.d("X",String.format("%.2f",X));
         return X;
     }
 
     /* Compute the maximum normalized auto-correlation psi(m) for lags between tauMin and tauMax
      * for sample m. Corresponding period is returned as well. */
-    public Result maxNormAutoCorrelation(int m, int tauMin, int tauMax) {
+    public Result maxNormAutoCorrelation(int tauMin, int tauMax) {
 
         double max = -1;
         int optPeriod = 0;
         int size = this.accData.size();
-        int currentM = size - 1 - tauMin * 2;
+        int currentM;
 
         // The mean of the left half
         double sum = 0;

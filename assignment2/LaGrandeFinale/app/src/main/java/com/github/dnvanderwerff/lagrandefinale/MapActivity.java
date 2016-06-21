@@ -34,6 +34,13 @@ import org.json.JSONException;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * This activity is the heart of the application, which is the only activity the user should have to use
+ * This activity
+ *      -   displays the map of the 9th floor (or any other map that is created in code)
+ *      -   connects all sensors and inputs to the logic behind the map
+ *      -   provides all the user interface functionalities
+ */
 public class MapActivity extends Activity {
     public final static String MAP_TYPE_MSG = "com.github.dnvanderwerff.lagrandefinale.MAP_TYPE_MSG";
     public final static int PREDICTION_HANDLER_ID = 555;
