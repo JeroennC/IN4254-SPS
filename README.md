@@ -6,7 +6,7 @@ The final assignment can be found in [assignment2](assignment2).
 In here you can find our app project ([LaGrandeFinale](assignment2/LaGrandeFinale)) and the python script running the RSSI server ([server.py](assignment2/RSSI_Server/server.py)).
 
 In the app you can find:
-9
+
 * Step detection: [StepDetector.java](assignment2/LaGrandeFinale/app/src/main/java/com/github/dnvanderwerff/lagrandefinale/util/StepDetector.java)
 * Auto-correlation: [AutoCorrelation.java](assignment2/LaGrandeFinale/app/src/main/java/com/github/dnvanderwerff/lagrandefinale/util/AutoCorrelation.java)
 * Direction: [DirectionExtractor.java](assignment2/LaGrandeFinale/app/src/main/java/com/github/dnvanderwerff/lagrandefinale/util/DirectionExtractor.java)
