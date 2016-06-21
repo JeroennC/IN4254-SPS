@@ -114,7 +114,12 @@ public class WifiIntel {
         } catch (IOException e) {
             Log.d("butWhy", e.getMessage());
             e.printStackTrace();
-            Toast.makeText(parent.getApplicationContext(), "Could not connect to cloud service", Toast.LENGTH_LONG).show();
+
+            parent.runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(parent, "Could not connect to cloud service", Toast.LENGTH_LONG).show();
+                }
+            });
         }
     }
 

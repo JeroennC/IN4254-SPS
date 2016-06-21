@@ -93,6 +93,42 @@ public class ParticleController {
         surface = (maxX - minX) * (maxY - minY);
     }
 
+    public void initialize(int particleAmount, double[] cellDistribution) {
+        particles = new Particle[particleAmount];
+        Random r = new Random(System.nanoTime());
+        Cell[] cells = map.getCells();
+
+        // Cell distribution contains cells 0 - 20. 0 is not actually a cell
+        double x, y;
+        double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE, minY = Double.MAX_VALUE, maxY = Double.MIN_VALUE;
+        Cell c;
+        int pcount = 0;
+        for (int i = 1; i < cellDistribution.length; i++) {
+            int numParticles = (int)(particleAmount * cellDistribution[i]);
+            c = cells[i];
+            for (int j = 0; j < numParticles; j++) {
+                do {
+                    x = c.x + r.nextDouble() * (c.width);
+                    y = c.y + r.nextDouble() * (c.height);
+                } while (!map.isValidLocation(x, y));
+                Particle p = new Particle(x, y);
+                particles[pcount++] = p;
+                if (p.x < minX)
+                    minX = p.x;
+                else if (p.x > maxX)
+                    maxX = p.x;
+
+                if (p.y < minY)
+                    minY = p.y;
+                else if (p.y > maxY)
+                    maxY = p.y;
+            }
+        }
+
+        // Get surface
+        surface = (maxX - minX) * (maxY - minY);
+    }
+
     /* Moves all particles */
     public void move(double directionRadians, NormalDistribution ndDirection) {
 
